@@ -39,12 +39,12 @@ const CFG = {
   REVIEWS: env('REVIEWS', []),                   // [{ "name": "Ana", "date": "setembro de 2026", "text": "..." }]      // [{ "title": "Cozinha", "icon": "🍳", "items": [...], "note": "..." }]
   AIRBNB_ICAL_URLS: String(env('AIRBNB_ICAL_URLS', '')).split(',').map(s => s.trim()).filter(Boolean),
   SYNC_MINUTES: Number(env('SYNC_MINUTES', 15)),
-  // Preços como estão no Airbnb; o preço direto é calculado a partir deles
+  // Preços do site (podem ser editados no painel)
   NIGHTLY_RATE: Number(env('NIGHTLY_RATE', 400)),
   WEEKEND_RATE: Number(env('WEEKEND_RATE', 0)) || null, // sexta e sábado
   CLEANING_FEE: Number(env('CLEANING_FEE', 0)),
-  AIRBNB_GUEST_FEE_PCT: Number(env('AIRBNB_GUEST_FEE_PCT', 14)), // taxa de serviço que o Airbnb cobra do hóspede
-  DIRECT_DISCOUNT_PCT: Number(env('DIRECT_DISCOUNT_PCT', 20)),   // desconto sobre o total do Airbnb
+  STAY_DISCOUNT_PCT: Number(env('STAY_DISCOUNT_PCT', 18)),       // desconto para estadias longas
+  STAY_DISCOUNT_MIN_NIGHTS: Number(env('STAY_DISCOUNT_MIN_NIGHTS', 2)), // a partir de quantas diárias
   AIRBNB_LISTING_URL: env('AIRBNB_LISTING_URL', ''),             // ex.: https://www.airbnb.com.br/rooms/123456
   MIN_NIGHTS: Number(env('MIN_NIGHTS', 2)),
   MAX_GUESTS: Number(env('MAX_GUESTS', 4)),
@@ -110,7 +110,10 @@ function isFree(checkIn, checkOut) { return !busyRanges().some(r => overlaps(che
 // Preços editados no painel valem mais que os do config
 function pricing() {
   const p = db.pricing || {};
-  return { nightly: p.nightly ?? CFG.NIGHTLY_RATE, weekend: p.weekend ?? CFG.WEEKEND_RATE, cleaning: p.cleaning ?? CFG.CLEANING_FEE };
+  return {
+    nightly: p.nightly ?? CFG.NIGHTLY_RATE, weekend: p.weekend ?? CFG.WEEKEND_RATE, cleaning: p.cleaning ?? CFG.CLEANING_FEE,
+    discountPct: p.discountPct ?? CFG.STAY_DISCOUNT_PCT, discountMinNights: p.discountMinNights ?? CFG.STAY_DISCOUNT_MIN_NIGHTS,
+  };
 }
 function nightRate(d, pr) {
   // Feriados/datas especiais: a noite de `start` até a noite de `end`, inclusive
@@ -125,13 +128,10 @@ function quote(checkIn, checkOut) {
   for (let d = checkIn; d < checkOut; d = addDays(d, 1)) total += nightRate(d, pr);
   const cleaning = pr.cleaning || 0;
   const subtotal = total + cleaning;
-  const airbnbFee = Math.round(subtotal * CFG.AIRBNB_GUEST_FEE_PCT) / 100;
-  const airbnbTotal = subtotal + airbnbFee;
-  const directTotal = Math.round(airbnbTotal * (100 - CFG.DIRECT_DISCOUNT_PCT) / 100); // arredonda para reais inteiros
-  return {
-    nights: nightsBetween(checkIn, checkOut), lodging: total, cleaning, airbnbFee, airbnbTotal,
-    total: directTotal, savings: Math.round((airbnbTotal - directTotal) * 100) / 100, discountPct: CFG.DIRECT_DISCOUNT_PCT,
-  };
+  const nights = nightsBetween(checkIn, checkOut);
+  const discountPct = pr.discountPct && nights >= pr.discountMinNights ? pr.discountPct : 0;
+  const finalTotal = Math.round(subtotal * (100 - discountPct) / 100); // arredonda para reais inteiros
+  return { nights, lodging: total, cleaning, subtotal, discountPct, discount: subtotal - finalTotal, total: finalTotal };
 }
 function validateStay(checkIn, checkOut, guests) {
   const re = /^\d{4}-\d{2}-\d{2}$/;
@@ -155,7 +155,7 @@ function whatsappLink(b) {
     `Check-out: ${br(b.checkOut)} (${b.nights} diária${b.nights > 1 ? 's' : ''})`,
     `Hóspedes: ${b.guests}`,
     `Nome: ${b.name}`,
-    `Valor direto: ${money(b.total)} (no Airbnb sairia ${money(b.airbnbTotal)})`,
+    b.discountPct ? `Valor: ${money(b.total)} (com ${b.discountPct}% de desconto, de ${money(b.subtotal)})` : `Valor: ${money(b.total)}`,
     b.notes ? `Obs.: ${b.notes}` : '',
     ``,
     `Como faço o pagamento?`,
@@ -213,7 +213,7 @@ const server = http.createServer(async (req, res) => {
 
     // API pública
     if (req.method === 'GET' && p === '/api/config') {
-      return send(res, 200, { name: CFG.CABIN_NAME, minNights: CFG.MIN_NIGHTS, maxGuests: CFG.MAX_GUESTS, holdHours: CFG.HOLD_HOURS, discountPct: CFG.DIRECT_DISCOUNT_PCT, airbnbUrl: CFG.AIRBNB_LISTING_URL,
+      return send(res, 200, { name: CFG.CABIN_NAME, minNights: CFG.MIN_NIGHTS, maxGuests: CFG.MAX_GUESTS, holdHours: CFG.HOLD_HOURS, discountPct: pricing().discountPct, discountMinNights: pricing().discountMinNights, airbnbUrl: CFG.AIRBNB_LISTING_URL,
         tagline: CFG.TAGLINE, location: CFG.LOCATION, description: CFG.DESCRIPTION, photos: CFG.PHOTOS, instagram: CFG.INSTAGRAM,
         bedrooms: CFG.BEDROOMS, beds: CFG.BEDS, bathrooms: CFG.BATHROOMS, amenities: CFG.AMENITIES, rules: CFG.RULES,
         checkinTime: CFG.CHECKIN_TIME, checkoutTime: CFG.CHECKOUT_TIME, mapQuery: CFG.MAP_QUERY,
@@ -278,8 +278,10 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'PUT' && p === '/api/admin/pricing') {
         const body = await readBody(req);
         const num = v => (v === '' || v == null) ? null : Number(v);
-        const next = { nightly: num(body.nightly), weekend: num(body.weekend), cleaning: num(body.cleaning) };
-        if (!(next.nightly > 0) || [next.weekend, next.cleaning].some(v => v != null && !(v >= 0))) return send(res, 400, { error: 'valores inválidos' });
+        const next = { nightly: num(body.nightly), weekend: num(body.weekend), cleaning: num(body.cleaning),
+          discountPct: num(body.discountPct), discountMinNights: num(body.discountMinNights) };
+        if (!(next.nightly > 0) || [next.weekend, next.cleaning, next.discountMinNights].some(v => v != null && !(v >= 0))
+          || (next.discountPct != null && !(next.discountPct >= 0 && next.discountPct < 100))) return send(res, 400, { error: 'valores inválidos' });
         db.pricing = next; save();
         return send(res, 200, pricing());
       }
