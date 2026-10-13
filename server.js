@@ -62,8 +62,8 @@ async function syncAirbnb() {
   try {
     const all = [];
     for (const url of CFG.AIRBNB_ICAL_URLS) {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Cabana-Reservas/1.0' } });
-      if (!res.ok) throw new Error(`HTTP ${res.status} em ${url}`);
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Cabana-Reservas/1.0)', 'Accept': 'text/calendar,*/*' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ao buscar o calendário ${new URL(url).hostname}`);
       all.push(...parseICal(await res.text()).map(e => ({ ...e, source: 'airbnb' })));
     }
     db.airbnb = all;
@@ -210,6 +210,10 @@ const server = http.createServer(async (req, res) => {
         tagline: CFG.TAGLINE, location: CFG.LOCATION, description: CFG.DESCRIPTION, photos: CFG.PHOTOS, instagram: CFG.INSTAGRAM,
         bedrooms: CFG.BEDROOMS, beds: CFG.BEDS, bathrooms: CFG.BATHROOMS, amenities: CFG.AMENITIES, rules: CFG.RULES,
         checkinTime: CFG.CHECKIN_TIME, checkoutTime: CFG.CHECKOUT_TIME, mapQuery: CFG.MAP_QUERY, whatsapp: CFG.WHATSAPP });
+    }
+    // Diagnóstico da sincronização (sem expor o link do Airbnb)
+    if (req.method === 'GET' && p === '/api/status') {
+      return send(res, 200, { airbnbConfigured: CFG.AIRBNB_ICAL_URLS.length > 0, lastSync: db.lastSync, lastSyncError: db.lastSyncError, airbnbEvents: db.airbnb.length });
     }
     if (req.method === 'GET' && p === '/api/availability') {
       await syncIfStale(CFG.SYNC_MINUTES);
