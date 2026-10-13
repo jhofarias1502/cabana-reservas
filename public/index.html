@@ -45,6 +45,7 @@
   .layout { display:grid; grid-template-columns:minmax(0,1fr) 370px; gap:56px; align-items:start; margin-top:28px; padding-bottom:120px; }
   h1 { font-family:var(--serif); font-weight:600; font-size:clamp(1.8rem, 4.5vw, 2.4rem); line-height:1.15; margin:0; letter-spacing:-.01em; }
   .loc { color:var(--muted); margin-top:6px; }
+  .tagline-sub { font-family:var(--serif); font-size:1.15rem; margin:6px 0 0; color:#3c3f37; }
   .facts { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:.95rem; }
   .facts span + span::before { content:'·'; margin-right:14px; color:var(--muted); }
   .deal { display:flex; gap:12px; align-items:center; margin-top:20px; padding:14px 16px; background:var(--soft); border-radius:12px; color:var(--accent); }
@@ -77,7 +78,7 @@
   .trust li { border:1px solid var(--line); border-radius:12px; padding:14px; background:var(--card); }
   .trust b { display:block; font-size:1.05rem; } .trust span { color:var(--muted); font-size:.85rem; }
   .cats { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 28px; margin-top:22px; }
-  .cat { display:grid; grid-template-columns:1fr 90px 30px; align-items:center; gap:10px; font-size:.9rem; }
+  .cat { display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; font-size:.9rem; }
   .meter { display:block; height:4px; background:var(--line); border-radius:4px; overflow:hidden; } .meter i { display:block; height:100%; background:var(--ink); }
   .topics { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
   .topics span { border:1px solid var(--line); border-radius:99px; padding:6px 12px; font-size:.85rem; background:var(--card); }
@@ -183,6 +184,7 @@
     <div class="layout">
       <div>
         <h1 id="title">Cabana</h1>
+        <p class="tagline-sub" id="tagline-sub" hidden></p>
         <div class="loc" id="location" hidden></div>
         <div class="facts" id="facts"></div>
         <div class="rating-line" id="rating-line" hidden></div>
@@ -404,7 +406,8 @@ async function load() { busy = (await (await fetch('/api/availability')).json())
 (async () => {
   cfg = await (await fetch('/api/config')).json();
   document.title = `${cfg.name} · Reserva direta`;
-  $('brand').textContent = cfg.name; $('title').textContent = cfg.tagline ? `${cfg.name} · ${cfg.tagline}` : cfg.name;
+  $('brand').textContent = cfg.name; $('title').textContent = cfg.name;
+  if (cfg.tagline) { $('tagline-sub').hidden = false; $('tagline-sub').textContent = cfg.tagline; }
   if (cfg.location) { $('location').hidden = false; $('location').textContent = cfg.location; }
   $('facts').innerHTML = [plural(cfg.maxGuests, 'hóspede', 'hóspedes'), plural(cfg.bedrooms, 'quarto', 'quartos'), plural(cfg.beds, 'cama', 'camas'), plural(cfg.bathrooms, 'banheiro', 'banheiros')]
     .map(f => `<span>${f}</span>`).join('');
@@ -430,7 +433,7 @@ async function load() { busy = (await (await fetch('/api/availability')).json())
       rs.noNegative && ['Zero avaliações negativas', `Em ${rs.count} hospedagens avaliadas`],
       rs.hostYears && [`${rs.hostYears} anos`, 'Recebendo hóspedes'],
     ].filter(Boolean).map(([b, t]) => `<li><b>${esc(b)}</b><span>${esc(t)}</span></li>`).join('');
-    $('cats').innerHTML = (rs.categories || []).map(([n, v]) => `<div class="cat"><span>${esc(n)}</span><span class="meter"><i style="width:${v / 5 * 100}%"></i></span><b>${num(v)}</b></div>`).join('');
+    $('cats').innerHTML = (rs.categories || []).map(([n, v]) => `<div class="cat"><span>${esc(n)}</span><b>${num(v)}</b></div>`).join('');
     if ((rs.topics || []).length) $('topics').innerHTML = '<span style="border:0;padding-left:0;background:none">Os hóspedes mais elogiam:</span>' + rs.topics.map(([n, c]) => `<span>${esc(n)}<b>${c}</b></span>`).join('');
     $('rev-cards').innerHTML = (cfg.reviews || []).map(r => `<div class="rev-card"><div class="who">${esc(r.name)}</div><div class="when">${esc(r.date || '')}</div><p>“${esc(r.text)}”</p></div>`).join('');
     if (revUrl) { $('rev-link').hidden = false; $('rev-link').href = revUrl; }

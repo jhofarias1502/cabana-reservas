@@ -1,5 +1,5 @@
 {
-  "CABIN_NAME": "Cabana Celeiro",
+  "CABIN_NAME": "Cabana Celeiro - Tiny Village",
   "TAGLINE": "Um refúgio romântico em meio à natureza",
   "DESCRIPTION": "Um refúgio exclusivo para quem busca conforto, privacidade e uma experiência romântica em meio à natureza.",
   "MAX_GUESTS": 2,
@@ -194,5 +194,13 @@
       ]
     ]
   },
-  "REVIEWS": []
+  "REVIEWS": [],
+  "PHOTOS": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1094465193883695868/original/6cfb1da3-aa5a-4842-ab2a-baa06a4a7536.jpeg?im_w=1200",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1094465193883695868/original/812cee84-22ae-498b-b2df-6975e2fa56eb.jpeg?im_w=720",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1094465193883695868/original/adc5785d-5421-4cf9-9463-0898576a6de8.jpeg?im_w=720",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1094465193883695868/original/c877f51d-c900-48ac-bc99-2ff509e3519e.jpeg?im_w=720",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1094465193883695868/original/e4634d94-6d38-46b4-842b-c8b3f56ce3e7.jpeg?im_w=720",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1094465193883695868/original/d74dde84-9e2b-4682-be37-08114e9da101.jpeg?im_w=720"
+  ]
 }
