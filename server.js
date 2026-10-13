@@ -75,9 +75,10 @@ async function syncAirbnb() {
     db.airbnb = all;
     db.lastSync = new Date().toISOString();
     db.lastSyncError = null;
-    // Alerta: reserva direta que conflita com algo que chegou do Airbnb
+    // Alerta: reserva direta que bate com uma RESERVA do Airbnb (bloqueios manuais, "Not available", não contam:
+    // são o próprio anfitrião fechando as datas da reserva direta)
     for (const b of activeBookings()) {
-      b.conflict = all.some(e => overlaps(b.checkIn, b.checkOut, e.start, e.end)) || undefined;
+      b.conflict = all.some(e => /reserved/i.test(e.summary || '') && overlaps(b.checkIn, b.checkOut, e.start, e.end)) || undefined;
     }
   } catch (err) {
     db.lastSyncError = `${new Date().toISOString()} ${err.message}`;

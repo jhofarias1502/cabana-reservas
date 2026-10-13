@@ -33,7 +33,7 @@
     <h2>Sincronização com o Airbnb</h2>
     <p id="sync" class="muted"></p>
     <button id="sync-now">Sincronizar agora</button>
-    <p class="muted" style="margin-top:14px">Cole este link no Airbnb em <em>Calendário → Disponibilidade → Conectar a outro site → Importar calendário</em>:</p>
+    <p class="muted" style="margin-top:14px"><strong>Opcional:</strong> se um dia quiser que o Airbnb bloqueie as reservas diretas sozinho, cole este link no Airbnb em <em>Calendário → Disponibilidade → Conectar a outro site → Importar calendário</em>:</p>
     <div class="feed"><input id="feed" readonly><button class="secondary" id="copy-feed">Copiar</button></div>
   </div>
 
@@ -107,7 +107,7 @@ async function load() {
     <td>${br(b.checkIn)} → ${br(b.checkOut)}${b.conflict ? '<br><span class="warn">⚠ conflito com o Airbnb</span>' : ''}</td>
     <td>${fmt(b.total)}</td>
     <td><span class="pill ${b.status}">${b.status}</span>${b.status === 'pendente' ? `<br><span class="muted">até ${new Date(b.holdUntil).toLocaleString('pt-BR')}</span>` : ''}</td>
-    <td>${b.status === 'pendente' || b.status === 'expirada' ? `<button onclick="act('${b.id}','confirmar')">Confirmar</button> ` : ''}
+    <td>${b.status === 'pendente' || b.status === 'expirada' ? `<button onclick="act('${b.id}','confirmar')">Confirmar pagamento</button> ` : ''}
         ${b.status !== 'cancelada' ? `<button class="secondary" onclick="act('${b.id}','cancelar')">Cancelar</button>` : ''}</td></tr>`).join('')
     || '<tr><td colspan="6" class="muted">Nenhuma reserva direta ainda.</td></tr>';
   $('airbnb').innerHTML = s.airbnb.filter(e => e.end >= today).sort((a, b) => a.start.localeCompare(b.start))
