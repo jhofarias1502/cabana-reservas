@@ -66,6 +66,28 @@
   .perks { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0; padding:0; list-style:none; }
   .perks li { background:var(--soft); color:var(--accent); padding:7px 12px; border-radius:99px; font-size:.88rem; font-weight:500; }
   .perks li::before { content:'✨ '; }
+  .rating-line { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin-top:10px; font-size:.95rem; font-weight:500; }
+  .rating-line a { text-decoration:underline; }
+  .tag { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line); background:var(--card); padding:4px 10px; border-radius:99px; font-size:.82rem; font-weight:600; }
+  .rev-head { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .rev-score { font-family:var(--serif); font-size:3rem; font-weight:600; line-height:1; }
+  .rev-score small { font-size:1.2rem; color:var(--muted); }
+  .rev-badges { display:flex; flex-wrap:wrap; gap:8px; }
+  .trust { list-style:none; padding:0; margin:20px 0 0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+  .trust li { border:1px solid var(--line); border-radius:12px; padding:14px; background:var(--card); }
+  .trust b { display:block; font-size:1.05rem; } .trust span { color:var(--muted); font-size:.85rem; }
+  .cats { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 28px; margin-top:22px; }
+  .cat { display:grid; grid-template-columns:1fr 90px 30px; align-items:center; gap:10px; font-size:.9rem; }
+  .bar { display:block; height:4px; background:var(--line); border-radius:4px; overflow:hidden; } .bar i { display:block; height:100%; background:var(--ink); }
+  .topics { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+  .topics span { border:1px solid var(--line); border-radius:99px; padding:6px 12px; font-size:.85rem; background:var(--card); }
+  .topics span b { color:var(--muted); font-weight:500; margin-left:4px; }
+  .rev-cards { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-top:22px; }
+  .rev-card { border:1px solid var(--line); border-radius:14px; padding:16px; background:var(--card); }
+  .rev-card .who { font-weight:600; } .rev-card .when { color:var(--muted); font-size:.82rem; }
+  .rev-card p { margin:10px 0 0; font-size:.93rem; color:#3c3f37; }
+  .trust-mini { text-align:center; font-size:.82rem; margin:12px 0 0; font-weight:500; }
+  @media (max-width:640px) { .trust { grid-template-columns:1fr; } .cats, .rev-cards { grid-template-columns:1fr; } }
   details.inc { border:1px solid var(--line); border-radius:12px; background:var(--card); }
   details.inc + details.inc { margin-top:10px; }
   details.inc summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:12px; padding:14px 16px; font-weight:500; }
@@ -163,12 +185,26 @@
         <h1 id="title">Cabana</h1>
         <div class="loc" id="location" hidden></div>
         <div class="facts" id="facts"></div>
+        <div class="rating-line" id="rating-line" hidden></div>
         <div class="deal"><b id="deal-pct">20%</b><span id="deal-text">mais barato reservando direto com a gente do que pelo Airbnb.</span></div>
 
         <section class="block" id="about" hidden>
           <h2>Sobre o espaço</h2>
           <p class="desc" id="description"></p>
           <ul class="perks" id="perks"></ul>
+        </section>
+
+        <section class="block" id="reviews-block" hidden>
+          <h2>Avaliações dos hóspedes</h2>
+          <div class="rev-head">
+            <div class="rev-score" id="rev-score"></div>
+            <div><div class="rev-badges" id="rev-badges"></div><div class="muted" id="rev-count" style="margin-top:6px;font-size:.9rem"></div></div>
+          </div>
+          <ul class="trust" id="trust"></ul>
+          <div class="cats" id="cats"></div>
+          <div class="topics" id="topics"></div>
+          <div class="rev-cards" id="rev-cards"></div>
+          <a class="btn-outline" id="rev-link" target="_blank" rel="noopener" hidden>Ver todas as avaliações no Airbnb</a>
         </section>
 
         <section class="block">
@@ -229,6 +265,7 @@
           </button>
           <div class="err" id="err"></div>
           <p class="fine">Você só paga depois de combinar tudo com a gente.</p>
+          <p class="trust-mini" id="trust-mini" hidden></p>
           <a class="alt" id="airbnb-link" target="_blank" rel="noopener" hidden>Prefiro reservar pelo Airbnb</a>
         </form>
       </aside>
@@ -376,6 +413,29 @@ async function load() { busy = (await (await fetch('/api/availability')).json())
   $('amenities').innerHTML = (cfg.amenities || []).map(a => `<li><span class="ic">${icon(a)}</span>${esc(a)}</li>`).join('');
   $('rules').innerHTML = (cfg.rules || []).map(r => `<li>${esc(r)}</li>`).join('');
   $('checkin-time').textContent = `a partir das ${cfg.checkinTime}`; $('checkout-time').textContent = `até ${cfg.checkoutTime}`;
+  const rs = cfg.reviewsSummary;
+  if (rs) {
+    const num = v => v.toLocaleString('pt-BR', { minimumFractionDigits: v % 1 ? (String(v).split('.')[1].length) : 1 });
+    const revUrl = cfg.airbnbUrl ? cfg.airbnbUrl.replace(/\/$/, '') + '/reviews' : '';
+    const badges = [rs.guestFavorite && '🏆 Preferido dos hóspedes', rs.superhost && '🏅 Superhost'].filter(Boolean);
+    $('rating-line').hidden = false;
+    $('rating-line').innerHTML = `<span>★ ${num(rs.rating)}</span><span>·</span>${revUrl ? `<a href="${esc(revUrl)}" target="_blank" rel="noopener">${rs.count} avaliações no Airbnb</a>` : `<span>${rs.count} avaliações</span>`}`
+      + badges.map(b => `<span class="tag">${b}</span>`).join('');
+    $('reviews-block').hidden = false;
+    $('rev-score').innerHTML = `★ ${num(rs.rating)}<small> / 5</small>`;
+    $('rev-badges').innerHTML = badges.map(b => `<span class="tag">${b}</span>`).join('');
+    $('rev-count').textContent = `${rs.count} avaliações no Airbnb`;
+    $('trust').innerHTML = [
+      rs.superhost && ['Superhost', 'Anfitrião reconhecido pelo Airbnb'],
+      rs.noNegative && ['Zero avaliações negativas', `Em ${rs.count} hospedagens avaliadas`],
+      rs.hostYears && [`${rs.hostYears} anos`, 'Recebendo hóspedes'],
+    ].filter(Boolean).map(([b, t]) => `<li><b>${esc(b)}</b><span>${esc(t)}</span></li>`).join('');
+    $('cats').innerHTML = (rs.categories || []).map(([n, v]) => `<div class="cat"><span>${esc(n)}</span><span class="bar"><i style="width:${v / 5 * 100}%"></i></span><b>${num(v)}</b></div>`).join('');
+    if ((rs.topics || []).length) $('topics').innerHTML = '<span style="border:0;padding-left:0;background:none">Os hóspedes mais elogiam:</span>' + rs.topics.map(([n, c]) => `<span>${esc(n)}<b>${c}</b></span>`).join('');
+    $('rev-cards').innerHTML = (cfg.reviews || []).map(r => `<div class="rev-card"><div class="who">${esc(r.name)}</div><div class="when">${esc(r.date || '')}</div><p>“${esc(r.text)}”</p></div>`).join('');
+    if (revUrl) { $('rev-link').hidden = false; $('rev-link').href = revUrl; }
+    $('trust-mini').hidden = false; $('trust-mini').textContent = `★ ${num(rs.rating)} · ${rs.count} avaliações${rs.superhost ? ' · Superhost no Airbnb' : ''}`;
+  }
   $('perks').innerHTML = (cfg.perks || []).map(p => `<li>${esc(p)}</li>`).join('');
   if ((cfg.included || []).length) {
     $('included-block').hidden = false;

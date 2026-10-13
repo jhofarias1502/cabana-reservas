@@ -1,5 +1,5 @@
 {
-  "CABIN_NAME": "Cabana",
+  "CABIN_NAME": "Cabana Celeiro",
   "TAGLINE": "Um refúgio romântico em meio à natureza",
   "DESCRIPTION": "Um refúgio exclusivo para quem busca conforto, privacidade e uma experiência romântica em meio à natureza.",
   "MAX_GUESTS": 2,
@@ -9,7 +9,7 @@
   "MIN_NIGHTS": 1,
   "CHECKIN_TIME": "13h",
   "CHECKOUT_TIME": "10h",
-  "AIRBNB_LISTING_URL": "",
+  "AIRBNB_LISTING_URL": "https://www.airbnb.com.br/rooms/1094465193883695868",
   "AMENITIES": [
     "Hidromassagem",
     "Ar-condicionado",
@@ -24,13 +24,97 @@
     "Aceita animais de estimação",
     "Roupa de cama e banho inclusas"
   ],
-  "PERKS": ["Experiência romântica", "Decoração personalizada (sob consulta)"],
+  "PERKS": [
+    "Experiência romântica",
+    "Decoração personalizada (sob consulta)"
+  ],
   "INCLUDED": [
-    { "title": "Eletrodomésticos", "icon": "🔌", "items": ["Cooktop", "Forno a gás", "Micro-ondas", "Geladeira", "Filtro de barro", "Cafeteira", "Pipoqueira", "Moedor de grãos de café", "Liquidificador", "Airfryer", "Grill/sanduicheira"] },
-    { "title": "Utensílios de cozinha", "icon": "🍽️", "items": ["Panelas", "Pratos de refeição", "Pratos de sobremesa", "Bowls", "Escorredor", "Petisqueira", "Garrafa térmica", "Jarra de vidro", "Aparelho de fondue (com estopa e álcool)", "Chaleira", "Saca-rolha", "Talheres", "Copos", "Xícaras", "Canecas", "Taças de champanhe", "Taças de vinho", "Ralador", "Cortador de pizza", "Colheres de preparo", "Pegador", "Abridor de lata e garrafa", "Descanso de panela"] },
-    { "title": "Temperos e café", "icon": "☕", "items": ["Sal", "Sal grosso", "Manjericão desidratado", "Óleo", "Café em grãos", "Café moído", "Açúcar"], "note": "Leve água para consumo." },
-    { "title": "Limpeza", "icon": "🧼", "items": ["Detergente", "Veja", "Bucha de louça", "Esponja de aço", "Pano tipo Perfex", "Saco de lixo", "Fósforo/isqueiro"] },
-    { "title": "Banheiro", "icon": "🚿", "items": ["Papel higiênico", "Secador de cabelo", "Shampoo", "Condicionador", "Sabonete líquido", "Toalha de rosto", "Toalha de chão"] }
+    {
+      "title": "Eletrodomésticos",
+      "icon": "🔌",
+      "items": [
+        "Cooktop",
+        "Forno a gás",
+        "Micro-ondas",
+        "Geladeira",
+        "Filtro de barro",
+        "Cafeteira",
+        "Pipoqueira",
+        "Moedor de grãos de café",
+        "Liquidificador",
+        "Airfryer",
+        "Grill/sanduicheira"
+      ]
+    },
+    {
+      "title": "Utensílios de cozinha",
+      "icon": "🍽️",
+      "items": [
+        "Panelas",
+        "Pratos de refeição",
+        "Pratos de sobremesa",
+        "Bowls",
+        "Escorredor",
+        "Petisqueira",
+        "Garrafa térmica",
+        "Jarra de vidro",
+        "Aparelho de fondue (com estopa e álcool)",
+        "Chaleira",
+        "Saca-rolha",
+        "Talheres",
+        "Copos",
+        "Xícaras",
+        "Canecas",
+        "Taças de champanhe",
+        "Taças de vinho",
+        "Ralador",
+        "Cortador de pizza",
+        "Colheres de preparo",
+        "Pegador",
+        "Abridor de lata e garrafa",
+        "Descanso de panela"
+      ]
+    },
+    {
+      "title": "Temperos e café",
+      "icon": "☕",
+      "items": [
+        "Sal",
+        "Sal grosso",
+        "Manjericão desidratado",
+        "Óleo",
+        "Café em grãos",
+        "Café moído",
+        "Açúcar"
+      ],
+      "note": "Leve água para consumo."
+    },
+    {
+      "title": "Limpeza",
+      "icon": "🧼",
+      "items": [
+        "Detergente",
+        "Veja",
+        "Bucha de louça",
+        "Esponja de aço",
+        "Pano tipo Perfex",
+        "Saco de lixo",
+        "Fósforo/isqueiro"
+      ]
+    },
+    {
+      "title": "Banheiro",
+      "icon": "🚿",
+      "items": [
+        "Papel higiênico",
+        "Secador de cabelo",
+        "Shampoo",
+        "Condicionador",
+        "Sabonete líquido",
+        "Toalha de rosto",
+        "Toalha de chão"
+      ]
+    }
   ],
   "RULES": [
     "Leve água para consumo",
@@ -43,5 +127,72 @@
     "Fácil acesso (use o Google Maps para chegar)",
     "Estacionamento no local",
     "A 5 minutos do vilarejo, com mercado, açougue, farmácia e posto de combustível"
-  ]
+  ],
+  "LOCATION": "Araçoiaba da Serra, São Paulo",
+  "REVIEWS_SUMMARY": {
+    "rating": 4.98,
+    "count": 86,
+    "superhost": true,
+    "guestFavorite": true,
+    "hostName": "Jhon Farias",
+    "hostYears": 7,
+    "noNegative": true,
+    "categories": [
+      [
+        "Limpeza",
+        5.0
+      ],
+      [
+        "Exatidão do anúncio",
+        5.0
+      ],
+      [
+        "Comunicação",
+        5.0
+      ],
+      [
+        "Check-in",
+        4.9
+      ],
+      [
+        "Localização",
+        4.9
+      ],
+      [
+        "Custo-benefício",
+        4.8
+      ]
+    ],
+    "topics": [
+      [
+        "Vista",
+        39
+      ],
+      [
+        "Hospitalidade",
+        38
+      ],
+      [
+        "Limpeza",
+        31
+      ],
+      [
+        "Espaço interno",
+        20
+      ],
+      [
+        "Hidromassagem",
+        18
+      ],
+      [
+        "Cozinha",
+        18
+      ],
+      [
+        "Conforto",
+        18
+      ]
+    ]
+  },
+  "REVIEWS": []
 }
