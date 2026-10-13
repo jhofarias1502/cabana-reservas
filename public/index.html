@@ -78,7 +78,7 @@
   .trust b { display:block; font-size:1.05rem; } .trust span { color:var(--muted); font-size:.85rem; }
   .cats { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 28px; margin-top:22px; }
   .cat { display:grid; grid-template-columns:1fr 90px 30px; align-items:center; gap:10px; font-size:.9rem; }
-  .bar { display:block; height:4px; background:var(--line); border-radius:4px; overflow:hidden; } .bar i { display:block; height:100%; background:var(--ink); }
+  .meter { display:block; height:4px; background:var(--line); border-radius:4px; overflow:hidden; } .meter i { display:block; height:100%; background:var(--ink); }
   .topics { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
   .topics span { border:1px solid var(--line); border-radius:99px; padding:6px 12px; font-size:.85rem; background:var(--card); }
   .topics span b { color:var(--muted); font-weight:500; margin-left:4px; }
@@ -430,7 +430,7 @@ async function load() { busy = (await (await fetch('/api/availability')).json())
       rs.noNegative && ['Zero avaliações negativas', `Em ${rs.count} hospedagens avaliadas`],
       rs.hostYears && [`${rs.hostYears} anos`, 'Recebendo hóspedes'],
     ].filter(Boolean).map(([b, t]) => `<li><b>${esc(b)}</b><span>${esc(t)}</span></li>`).join('');
-    $('cats').innerHTML = (rs.categories || []).map(([n, v]) => `<div class="cat"><span>${esc(n)}</span><span class="bar"><i style="width:${v / 5 * 100}%"></i></span><b>${num(v)}</b></div>`).join('');
+    $('cats').innerHTML = (rs.categories || []).map(([n, v]) => `<div class="cat"><span>${esc(n)}</span><span class="meter"><i style="width:${v / 5 * 100}%"></i></span><b>${num(v)}</b></div>`).join('');
     if ((rs.topics || []).length) $('topics').innerHTML = '<span style="border:0;padding-left:0;background:none">Os hóspedes mais elogiam:</span>' + rs.topics.map(([n, c]) => `<span>${esc(n)}<b>${c}</b></span>`).join('');
     $('rev-cards').innerHTML = (cfg.reviews || []).map(r => `<div class="rev-card"><div class="who">${esc(r.name)}</div><div class="when">${esc(r.date || '')}</div><p>“${esc(r.text)}”</p></div>`).join('');
     if (revUrl) { $('rev-link').hidden = false; $('rev-link').href = revUrl; }
