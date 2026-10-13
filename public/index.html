@@ -372,7 +372,7 @@ async function updateQuote() {
   $('quote').innerHTML = `<div class="compare">
       <div class="r"><span>${n}</span><span>${fmt(q.lodging)}</span></div>
       ${q.cleaning ? `<div class="r"><span>Taxa de limpeza</span><span>${fmt(q.cleaning)}</span></div>` : ''}
-      <div class="r"><span>Taxa de serviço do Airbnb</span><span>${fmt(q.airbnbFee)}</span></div>
+      ${q.airbnbFee ? `<div class="r"><span>Taxa de serviço do Airbnb</span><span>${fmt(q.airbnbFee)}</span></div>` : ''}
       <div class="r"><small>Total no Airbnb</small><span class="strike">${fmt(q.airbnbTotal)}</span></div>
       <div class="r tot"><span>Total direto (−${q.discountPct}%)</span><span>${fmt(q.total)}</span></div>
     </div>`;
