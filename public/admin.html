@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel da Cabana</title>
+<style>
+  :root { --bg:#f7f4ef; --ink:#2b2a27; --muted:#7a756c; --accent:#3f6b4f; --err:#b3412e; --warn:#a46a00; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 980px; margin:0 auto; padding: 24px 16px 48px; }
+  .card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:16px; overflow-x:auto; }
+  h1 { margin:0 0 16px; } h2 { margin:0 0 10px; font-size:1.1rem; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid #eee; white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; }
+  button { border:0; border-radius:8px; padding:7px 12px; cursor:pointer; background:var(--accent); color:#fff; font: inherit; font-size:.85rem; }
+  button.secondary { background:#e7e2da; color:var(--ink); }
+  .pill { padding:2px 8px; border-radius:99px; font-size:.78rem; background:#eee; }
+  .pendente { background:#fff1cc; } .confirmada { background:#d6e6da; } .cancelada, .expirada { background:#f1e3e0; }
+  .warn { color: var(--warn); font-weight:600; } .err { color: var(--err); }
+  .feed { display:flex; gap:8px; } .feed input { flex:1; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:.8rem; }
+  form.inline { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+  form.inline input { padding:7px; border:1px solid #ddd; border-radius:8px; font:inherit; }
+  .muted { color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Painel da Cabana</h1>
+
+  <div class="card">
+    <h2>Sincronização com o Airbnb</h2>
+    <p id="sync" class="muted"></p>
+    <button id="sync-now">Sincronizar agora</button>
+    <p class="muted" style="margin-top:14px">Cole este link no Airbnb em <em>Calendário → Disponibilidade → Conectar a outro site → Importar calendário</em>:</p>
+    <div class="feed"><input id="feed" readonly><button class="secondary" id="copy-feed">Copiar</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Reservas diretas</h2>
+    <table><thead><tr><th>Código</th><th>Hóspede</th><th>Datas</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody id="bookings"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Reservas do Airbnb (importadas)</h2>
+    <table><thead><tr><th>Datas</th><th>Descrição</th></tr></thead><tbody id="airbnb"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Bloqueios manuais</h2>
+    <form class="inline" id="block-form">
+      <label>De<br><input type="date" id="b-start" required></label>
+      <label>Até (saída)<br><input type="date" id="b-end" required></label>
+      <label>Motivo<br><input id="b-reason" placeholder="manutenção, uso próprio..."></label>
+      <button>Bloquear</button>
+    </form>
+    <table style="margin-top:10px"><tbody id="blocks"></tbody></table>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const br = s => s.split('-').reverse().join('/');
+const fmt = v => v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const today = new Date().toISOString().slice(0, 10);
+async function api(path, opts = {}) {
+  const r = await fetch('/api/admin/' + path, { ...opts, headers: { 'Content-Type': 'application/json' } });
+  const d = await r.json(); if (!r.ok) { alert(d.error); throw new Error(d.error); } return d;
+}
+async function load() {
+  const s = await api('state');
+  $('feed').value = s.feedUrl;
+  $('sync').innerHTML = !s.airbnbConfigured ? '<span class="warn">Link iCal do Airbnb ainda não configurado.</span>'
+    : `Última sincronização: ${s.lastSync ? new Date(s.lastSync).toLocaleString('pt-BR') : 'nunca'}` + (s.lastSyncError ? `<br><span class="err">Erro: ${esc(s.lastSyncError)}</span>` : '');
+  $('bookings').innerHTML = s.bookings.slice().reverse().map(b => `<tr>
+    <td>${b.id}</td>
+    <td>${esc(b.name)}<br><span class="muted">${esc(b.phone)} ${esc(b.email)} · ${b.guests} hósp.</span>${b.notes ? `<br><span class="muted">${esc(b.notes)}</span>` : ''}</td>
+    <td>${br(b.checkIn)} → ${br(b.checkOut)}${b.conflict ? '<br><span class="warn">⚠ conflito com o Airbnb</span>' : ''}</td>
+    <td>${fmt(b.total)}</td>
+    <td><span class="pill ${b.status}">${b.status}</span>${b.status === 'pendente' ? `<br><span class="muted">até ${new Date(b.holdUntil).toLocaleString('pt-BR')}</span>` : ''}</td>
+    <td>${b.status === 'pendente' || b.status === 'expirada' ? `<button onclick="act('${b.id}','confirmar')">Confirmar</button> ` : ''}
+        ${b.status !== 'cancelada' ? `<button class="secondary" onclick="act('${b.id}','cancelar')">Cancelar</button>` : ''}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="muted">Nenhuma reserva direta ainda.</td></tr>';
+  $('airbnb').innerHTML = s.airbnb.filter(e => e.end >= today).sort((a, b) => a.start.localeCompare(b.start))
+    .map(e => `<tr><td>${br(e.start)} → ${br(e.end)}</td><td>${esc(e.summary)}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Nada importado.</td></tr>';
+  $('blocks').innerHTML = s.blocks.map(k => `<tr><td>${br(k.start)} → ${br(k.end)}</td><td>${esc(k.reason)}</td>
+    <td><button class="secondary" onclick="unblock('${k.id}')">Remover</button></td></tr>`).join('');
+}
+async function act(id, what) { if (what === 'cancelar' && !confirm('Cancelar esta reserva?')) return; await api(`bookings/${id}/${what}`, { method:'POST' }); load(); }
+async function unblock(id) { await api('blocks/' + id, { method:'DELETE' }); load(); }
+$('sync-now').onclick = async () => { $('sync-now').disabled = true; await api('sync', { method:'POST' }); $('sync-now').disabled = false; load(); };
+$('copy-feed').onclick = () => navigator.clipboard.writeText($('feed').value);
+$('block-form').onsubmit = async e => { e.preventDefault(); await api('blocks', { method:'POST', body: JSON.stringify({ start:$('b-start').value, end:$('b-end').value, reason:$('b-reason').value }) }); e.target.reset(); load(); };
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "CABIN_NAME": "Cabana",
+  "AIRBNB_ICAL_URLS": "https://www.airbnb.com.br/calendar/ical/SEU_ID.ics?s=SEU_TOKEN",
+  "NIGHTLY_RATE": 400,
+  "WEEKEND_RATE": 500,
+  "CLEANING_FEE": 100,
+  "MIN_NIGHTS": 2,
+  "MAX_GUESTS": 4,
+  "HOLD_HOURS": 24,
+  "WHATSAPP": "5511999999999",
+  "ADMIN_PASSWORD": "troque-esta-senha",
+  "AIRBNB_LISTING_URL": "https://www.airbnb.com.br/rooms/SEU_ANUNCIO",
+  "AIRBNB_GUEST_FEE_PCT": 14,
+  "DIRECT_DISCOUNT_PCT": 20,
+  "TAGLINE": "Natureza, design e conforto",
+  "LOCATION": "Cidade, Estado",
+  "DESCRIPTION": "Texto sobre a cabana.",
+  "PHOTOS": [
+    "/fotos/capa.jpg",
+    "/fotos/2.jpg",
+    "/fotos/3.jpg",
+    "/fotos/4.jpg",
+    "/fotos/5.jpg"
+  ],
+  "INSTAGRAM": "seu_instagram",
+  "BEDROOMS": 1,
+  "BEDS": 1,
+  "BATHROOMS": 1,
+  "AMENITIES": [
+    "Hidromassagem",
+    "Lareira",
+    "Wi-Fi",
+    "Cozinha completa"
+  ],
+  "RULES": [
+    "Proibido fumar",
+    "Sem festas ou eventos"
+  ],
+  "CHECKIN_TIME": "16:00",
+  "CHECKOUT_TIME": "12:00",
+  "MAP_QUERY": "Cidade, Estado"
+}

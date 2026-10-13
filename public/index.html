@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserve a Cabana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#fbf9f5; --card:#fff; --ink:#22261f; --muted:#6c6f64; --line:#e8e2d7;
+    --accent:#2f5d46; --soft:#e7efe9; --wa:#1f8f4e; --err:#b3412e;
+    --radius:16px; --shadow:0 6px 28px rgba(34,38,31,.10);
+    --serif:'Fraunces', Georgia, serif; --sans:'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:var(--sans); background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; line-height:1.5; }
+  a { color:inherit; }
+  [hidden] { display:none !important; }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 16px; }
+
+  /* Topo */
+  .top { border-bottom:1px solid var(--line); background:var(--card); }
+  .top .wrap { display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .brand { font-family:var(--serif); font-weight:600; font-size:1.35rem; text-decoration:none; }
+  .top-links { display:flex; gap:8px; }
+  .top-links a { display:inline-flex; align-items:center; gap:6px; text-decoration:none; font-size:.88rem; font-weight:500; padding:8px 12px; border:1px solid var(--line); border-radius:99px; }
+  .top-links svg { width:16px; height:16px; }
+
+  /* Galeria */
+  .gallery { margin-top:20px; display:grid; grid-template-columns:2fr 1fr 1fr; grid-template-rows:210px 210px; gap:8px; border-radius:var(--radius); overflow:hidden; }
+  .gallery > * { width:100%; height:100%; object-fit:cover; display:block; background:var(--soft); }
+  .gallery > :first-child { grid-row:span 2; }
+  .ph { display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:.85rem; font-weight:500;
+    background:linear-gradient(160deg, #dfe9e2, #c8d9cd); }
+  .ph svg { width:100%; height:100%; }
+  @media (max-width:760px) {
+    .gallery { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; border-radius:0; margin:0 -16px; gap:4px; }
+    .gallery > * { flex:0 0 88%; height:260px; scroll-snap-align:start; }
+  }
+
+  /* Conteúdo */
+  .layout { display:grid; grid-template-columns:minmax(0,1fr) 370px; gap:56px; align-items:start; margin-top:28px; padding-bottom:120px; }
+  h1 { font-family:var(--serif); font-weight:600; font-size:clamp(1.8rem, 4.5vw, 2.4rem); line-height:1.15; margin:0; letter-spacing:-.01em; }
+  .loc { color:var(--muted); margin-top:6px; }
+  .facts { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:.95rem; }
+  .facts span + span::before { content:'·'; margin-right:14px; color:var(--muted); }
+  .deal { display:flex; gap:12px; align-items:center; margin-top:20px; padding:14px 16px; background:var(--soft); border-radius:12px; color:var(--accent); }
+  .deal b { font-size:1.4rem; font-family:var(--serif); }
+  section.block { border-top:1px solid var(--line); padding:28px 0; }
+  section.block:first-of-type { margin-top:24px; }
+  h2 { font-family:var(--serif); font-weight:600; font-size:1.4rem; margin:0 0 16px; letter-spacing:-.01em; }
+  .desc { white-space:pre-line; margin:0; color:#3c3f37; }
+  .amenities { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px 24px; list-style:none; margin:0; padding:0; }
+  .amenities li { display:flex; align-items:center; gap:12px; }
+  .amenities .ic { width:36px; height:36px; display:grid; place-items:center; border-radius:10px; background:var(--soft); font-size:1.05rem; flex:none; }
+  .rules { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+  .rules li::before { content:'•'; color:var(--accent); margin-right:10px; font-weight:700; }
+  .times { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+  .times div { border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .times small { display:block; color:var(--muted); font-size:.8rem; }
+  .times b { font-size:1.1rem; }
+  .map { width:100%; height:300px; border:0; border-radius:var(--radius); }
+
+  /* Calendário */
+  .cal-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .nav { display:flex; gap:6px; }
+  .nav button { width:36px; height:36px; border-radius:50%; border:1px solid var(--line); background:var(--card); font-size:1.15rem; cursor:pointer; color:var(--ink); }
+  .nav button:disabled { opacity:.35; cursor:default; }
+  #pick-hint { color:var(--muted); margin:-8px 0 16px; font-size:.92rem; }
+  .months { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:28px; }
+  .month h3 { margin:0 0 8px; font-size:.95rem; font-weight:600; text-align:center; }
+  .grid { display:grid; grid-template-columns:repeat(7, 1fr); }
+  .dow { font-size:.7rem; color:var(--muted); text-align:center; padding:4px 0; font-weight:500; }
+  .day { aspect-ratio:1; border:0; border-radius:50%; background:none; font:inherit; font-size:.9rem; cursor:pointer; color:var(--ink); }
+  .day:hover:not(:disabled):not(.sel) { box-shadow:inset 0 0 0 1.5px var(--ink); }
+  .day:disabled { color:#c4beb2; cursor:default; }
+  .day.busy { text-decoration:line-through; }
+  .day.in-range { background:var(--soft); border-radius:0; }
+  .day.sel { background:var(--accent); color:#fff; font-weight:600; }
+
+  /* Caixa de reserva */
+  .booking { position:sticky; top:20px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow); }
+  .price-tag strong { font-family:var(--serif); font-size:1.6rem; font-weight:600; }
+  .price-tag span { color:var(--muted); }
+  .save-pill { display:inline-block; background:var(--soft); color:var(--accent); font-weight:600; font-size:.8rem; padding:4px 10px; border-radius:99px; margin-top:6px; }
+  .dates { display:grid; grid-template-columns:1fr 1fr; border:1px solid #cfc8bb; border-radius:12px; overflow:hidden; margin-top:16px; cursor:pointer; text-decoration:none; }
+  .dates div { padding:10px 12px; } .dates div + div { border-left:1px solid #cfc8bb; }
+  .dates small { display:block; font-size:.66rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+  .dates span { font-size:.93rem; }
+  .compare { margin:16px 0 4px; font-size:.92rem; }
+  .compare .r { display:flex; justify-content:space-between; gap:10px; padding:5px 0; }
+  .compare .r small { color:var(--muted); }
+  .compare .strike { text-decoration:line-through; color:var(--muted); }
+  .compare .tot { border-top:1px solid var(--line); margin-top:8px; padding-top:12px; font-weight:600; font-size:1rem; }
+  .compare .tot span:last-child { color:var(--accent); }
+  label { display:block; font-size:.8rem; font-weight:500; color:var(--muted); margin:12px 0 5px; }
+  input, textarea, select { width:100%; padding:11px 12px; border:1px solid #d6cfc3; border-radius:10px; font:inherit; background:#fff; color:var(--ink); }
+  input:focus, textarea:focus, select:focus { outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent; }
+  .row { display:grid; grid-template-columns:1fr 110px; gap:10px; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:18px; padding:15px; border:0; border-radius:12px;
+    background:var(--wa); color:#fff; font:inherit; font-size:1rem; font-weight:600; cursor:pointer; text-decoration:none; }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .btn svg { width:20px; height:20px; }
+  .fine { font-size:.8rem; color:var(--muted); text-align:center; margin:10px 0 0; }
+  .alt { display:block; text-align:center; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:.88rem; }
+  .err { color:var(--err); font-size:.9rem; margin-top:10px; }
+  .err:empty { display:none; }
+
+  /* Celular */
+  .bar { display:none; }
+  @media (max-width:900px) {
+    .layout { grid-template-columns:1fr; gap:0; }
+    .booking { position:static; box-shadow:none; margin-top:8px; }
+    .amenities { grid-template-columns:1fr; }
+    .bar { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:10; align-items:center; justify-content:space-between; gap:12px;
+      padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:var(--card); border-top:1px solid var(--line); box-shadow:0 -6px 20px rgba(0,0,0,.06); }
+    .bar strong { font-family:var(--serif); font-size:1.15rem; }
+    .bar small { display:block; color:var(--accent); font-size:.78rem; font-weight:500; }
+    .bar a { background:var(--accent); color:#fff; text-decoration:none; padding:12px 22px; border-radius:99px; font-weight:600; white-space:nowrap; }
+  }
+
+  footer { border-top:1px solid var(--line); background:var(--card); padding:28px 0 100px; color:var(--muted); font-size:.88rem; }
+  footer .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; }
+  footer a { color:var(--ink); font-weight:500; text-decoration:none; margin-left:16px; }
+
+  .done { max-width:520px; margin:60px auto; text-align:center; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:32px 24px; }
+  .done .icon { font-size:2.6rem; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#" id="brand">Cabana</a>
+    <nav class="top-links" id="top-links"></nav>
+  </div>
+</header>
+
+<main id="booking-area">
+  <div class="wrap">
+    <div class="gallery" id="gallery"></div>
+
+    <div class="layout">
+      <div>
+        <h1 id="title">Cabana</h1>
+        <div class="loc" id="location" hidden></div>
+        <div class="facts" id="facts"></div>
+        <div class="deal"><b id="deal-pct">20%</b><span id="deal-text">mais barato reservando direto com a gente do que pelo Airbnb.</span></div>
+
+        <section class="block" id="about" hidden>
+          <h2>Sobre o espaço</h2>
+          <p class="desc" id="description"></p>
+        </section>
+
+        <section class="block">
+          <h2>O que este lugar oferece</h2>
+          <ul class="amenities" id="amenities"></ul>
+        </section>
+
+        <section class="block" id="datas">
+          <div class="cal-head">
+            <h2>Disponibilidade</h2>
+            <div class="nav"><button id="prev" aria-label="Mês anterior">‹</button><button id="next" aria-label="Próximo mês">›</button></div>
+          </div>
+          <p id="pick-hint">Toque no dia de chegada</p>
+          <div class="months" id="months"></div>
+        </section>
+
+        <section class="block">
+          <h2>Regras da casa</h2>
+          <div class="times">
+            <div><small>Check-in</small><b id="checkin-time"></b></div>
+            <div><small>Check-out</small><b id="checkout-time"></b></div>
+          </div>
+          <ul class="rules" id="rules"></ul>
+        </section>
+
+        <section class="block" id="map-block" hidden>
+          <h2>Onde você vai estar</h2>
+          <iframe class="map" id="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa"></iframe>
+        </section>
+      </div>
+
+      <aside>
+        <form class="booking" id="form">
+          <div class="price-tag"><strong id="headline-price">Reserve direto</strong> <span id="headline-sub"></span></div>
+          <span class="save-pill" id="save-pill" hidden></span>
+          <a class="dates" href="#datas">
+            <div><small>Check-in</small><span id="ci-label">Adicionar data</span></div>
+            <div><small>Check-out</small><span id="co-label">Adicionar data</span></div>
+          </a>
+          <div id="quote"></div>
+          <div class="row">
+            <div><label for="name">Seu nome</label><input id="name" required autocomplete="name"></div>
+            <div><label for="guests">Hóspedes</label><select id="guests"></select></div>
+          </div>
+          <label for="phone">WhatsApp</label><input id="phone" required autocomplete="tel" inputmode="tel" placeholder="(41) 99999-9999">
+          <label for="notes">Alguma observação? (opcional)</label><textarea id="notes" rows="2" placeholder="Pet, horário de chegada, ocasião especial..."></textarea>
+          <input id="email" type="hidden">
+          <button class="btn" id="submit" disabled>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.6 14.1c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.3.1.2.1.8-.1 1.4Z"/></svg>
+            Reservar pelo WhatsApp
+          </button>
+          <div class="err" id="err"></div>
+          <p class="fine">Você só paga depois de combinar tudo com a gente.</p>
+          <a class="alt" id="airbnb-link" target="_blank" rel="noopener" hidden>Prefiro reservar pelo Airbnb</a>
+        </form>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<div class="bar" id="bar">
+  <div><strong id="bar-price">Reserve direto</strong><small id="bar-sub">20% mais barato que no Airbnb</small></div>
+  <a href="#datas" id="bar-cta">Ver datas</a>
+</div>
+
+<section class="wrap" id="done" hidden>
+  <div class="done">
+    <div class="icon">🌿</div>
+    <h2>Quase lá!</h2>
+    <p id="done-text" style="color:var(--muted)"></p>
+    <a class="btn" id="wa" target="_blank" rel="noopener">Abrir WhatsApp</a>
+    <p class="fine">Se o WhatsApp não abriu sozinho, toque no botão acima.</p>
+  </div>
+</section>
+
+<footer><div class="wrap"><span id="copy"></span><span id="foot-links"></span></div></footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: v % 1 ? 2 : 0 });
+const iso = d => d.toISOString().slice(0, 10);
+const br = s => new Date(s + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'UTC' }).replace('.', '');
+const today = iso(new Date(Date.now() - new Date().getTimezoneOffset() * 6e4));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+const ICONS = [[/wi-?fi|internet/i, '📶'], [/cozinha/i, '🍳'], [/lareira/i, '🔥'], [/estaciona|garagem/i, '🚗'], [/hidro|banheira|ofur/i, '🛁'],
+  [/piscina/i, '🏊'], [/ar[- ]condicionado|ar cond/i, '❄️'], [/vista|montanha|natureza|mata/i, '⛰️'], [/pet/i, '🐾'], [/cama|roup[ãa]o|toalha/i, '🛏️'],
+  [/churras/i, '🍖'], [/tv|netflix|smart/i, '📺'], [/varanda|terra[çc]o|deck/i, '🌿'], [/caf[ée]/i, '☕'], [/jardim|quintal/i, '🌳']];
+const icon = a => (ICONS.find(([re]) => re.test(a)) || [, '✓'])[1];
+const WA_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z"/></svg>';
+const IG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>';
+const PLACEHOLDER = `<div class="ph"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice"><path d="M0 190 L70 120 L140 175 L220 95 L300 170 L400 110 V300 H0Z" fill="#9fbcaa"/><g fill="#5f8a71"><path d="M30 300 L70 170 L110 300Z"/><path d="M300 300 L345 150 L390 300Z"/></g><g transform="translate(150 175)"><path d="M0 45 L50 0 L100 45 V105 H0Z" fill="#8a5d3d"/><rect x="38" y="60" width="24" height="45" fill="#f2c26b"/></g></svg></div>`;
+let cfg, busy = [], checkIn = null, checkOut = null, offset = 0;
+
+const isBusyNight = d => busy.some(r => d >= r.start && d < r.end);
+const rangeFree = (a, b) => !busy.some(r => a < r.end && r.start < b);
+
+function render() {
+  const base = new Date(today + 'T00:00:00Z');
+  const box = $('months'); box.innerHTML = '';
+  for (let m = 0; m < 2; m++) {
+    const first = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + offset + m, 1));
+    const label = first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const el = document.createElement('div'); el.className = 'month';
+    el.innerHTML = `<h3>${label[0].toUpperCase() + label.slice(1)}</h3>`;
+    const g = document.createElement('div'); g.className = 'grid';
+    'DSTQQSS'.split('').forEach(l => g.insertAdjacentHTML('beforeend', `<div class="dow">${l}</div>`));
+    for (let i = 0; i < first.getUTCDay(); i++) g.appendChild(document.createElement('div'));
+    const days = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+    for (let d = 1; d <= days; d++) {
+      const s = iso(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), d)));
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'day'; b.textContent = d;
+      const past = s < today, nightBusy = isBusyNight(s);
+      // Check-out pode cair num dia ocupado (a próxima estadia começa nesse dia)
+      const canBeCheckout = checkIn && !checkOut && s > checkIn && rangeFree(checkIn, s);
+      if (nightBusy && !canBeCheckout) b.classList.add('busy');
+      if (past || (nightBusy && !canBeCheckout)) b.disabled = true;
+      if (s === checkIn || s === checkOut) b.classList.add('sel');
+      else if (checkIn && checkOut && s > checkIn && s < checkOut) b.classList.add('in-range');
+      b.onclick = () => pick(s);
+      g.appendChild(b);
+    }
+    el.appendChild(g); box.appendChild(el);
+  }
+  $('prev').disabled = offset === 0;
+  $('pick-hint').textContent = !checkIn ? 'Toque no dia de chegada' : !checkOut ? 'Agora toque no dia de saída' : `${br(checkIn)} a ${br(checkOut)}. Toque em outro dia para mudar.`;
+  $('ci-label').textContent = checkIn ? br(checkIn) : 'Adicionar data';
+  $('co-label').textContent = checkOut ? br(checkOut) : 'Adicionar data';
+}
+
+async function pick(s) {
+  if (!checkIn || checkOut || s <= checkIn) { checkIn = s; checkOut = null; }
+  else if (rangeFree(checkIn, s)) checkOut = s;
+  else { checkIn = s; checkOut = null; }
+  render(); await updateQuote();
+  if (checkOut && matchMedia('(max-width:900px)').matches) $('form').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetPrice() {
+  $('headline-price').textContent = 'Reserve direto'; $('headline-sub').textContent = '';
+  $('save-pill').hidden = true; $('quote').innerHTML = ''; $('airbnb-link').hidden = true;
+  $('bar-price').textContent = 'Reserve direto'; $('bar-sub').textContent = `${cfg.discountPct}% mais barato que no Airbnb`;
+  $('bar-cta').textContent = 'Ver datas'; $('bar-cta').href = '#datas';
+}
+
+async function updateQuote() {
+  $('err').textContent = ''; $('submit').disabled = true;
+  if (!checkIn || !checkOut) { resetPrice(); return; }
+  const r = await fetch(`/api/quote?checkIn=${checkIn}&checkOut=${checkOut}`); const q = await r.json();
+  if (!r.ok) { resetPrice(); $('err').textContent = q.error; return; }
+  const n = plural(q.nights, 'noite', 'noites');
+  $('headline-price').textContent = fmt(q.total); $('headline-sub').textContent = `total · ${n}`;
+  $('save-pill').hidden = false; $('save-pill').textContent = `Você economiza ${fmt(q.savings)}`;
+  $('quote').innerHTML = `<div class="compare">
+      <div class="r"><span>Diárias (${n})</span><span>${fmt(q.lodging)}</span></div>
+      ${q.cleaning ? `<div class="r"><span>Taxa de limpeza</span><span>${fmt(q.cleaning)}</span></div>` : ''}
+      <div class="r"><span>Taxa de serviço do Airbnb</span><span>${fmt(q.airbnbFee)}</span></div>
+      <div class="r"><small>Total no Airbnb</small><span class="strike">${fmt(q.airbnbTotal)}</span></div>
+      <div class="r tot"><span>Total direto (−${q.discountPct}%)</span><span>${fmt(q.total)}</span></div>
+    </div>`;
+  $('bar-price').textContent = fmt(q.total); $('bar-sub').textContent = `${n} · economize ${fmt(q.savings)}`;
+  $('bar-cta').textContent = 'Reservar'; $('bar-cta').href = '#form';
+  $('submit').disabled = !q.available;
+  if (!q.available) $('err').textContent = 'Essas datas não estão mais disponíveis.';
+  if (cfg.airbnbUrl) {
+    const a = $('airbnb-link'); a.hidden = false;
+    a.href = `${cfg.airbnbUrl}?check_in=${checkIn}&check_out=${checkOut}&adults=${$('guests').value}`;
+  }
+}
+
+$('form').onsubmit = async e => {
+  e.preventDefault(); $('submit').disabled = true; $('err').textContent = '';
+  const body = { checkIn, checkOut, name: $('name').value, phone: $('phone').value, email: $('email').value, guests: $('guests').value, notes: $('notes').value };
+  const r = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await r.json();
+  if (!r.ok) { $('err').textContent = data.error; await load(); $('submit').disabled = false; return; }
+  const b = data.booking;
+  $('booking-area').hidden = true; $('bar').hidden = true; $('done').hidden = false;
+  $('done-text').innerHTML = `Seguramos suas datas (${br(b.checkIn)} a ${br(b.checkOut)}) por ${cfg.holdHours} horas. Valor direto: <strong>${fmt(b.total)}</strong>. Agora é só enviar a mensagem no WhatsApp para fecharmos.`;
+  $('wa').href = data.whatsappUrl;
+  window.scrollTo(0, 0);
+  window.location.href = data.whatsappUrl;
+};
+$('prev').onclick = () => { if (offset > 0) { offset--; render(); } };
+$('next').onclick = () => { offset++; render(); };
+
+async function load() { busy = (await (await fetch('/api/availability')).json()).busy; render(); }
+(async () => {
+  cfg = await (await fetch('/api/config')).json();
+  document.title = `${cfg.name} · Reserva direta`;
+  $('brand').textContent = cfg.name; $('title').textContent = cfg.tagline ? `${cfg.name} · ${cfg.tagline}` : cfg.name;
+  if (cfg.location) { $('location').hidden = false; $('location').textContent = cfg.location; }
+  $('facts').innerHTML = [plural(cfg.maxGuests, 'hóspede', 'hóspedes'), plural(cfg.bedrooms, 'quarto', 'quartos'), plural(cfg.beds, 'cama', 'camas'), plural(cfg.bathrooms, 'banheiro', 'banheiros')]
+    .map(f => `<span>${f}</span>`).join('');
+  $('deal-pct').textContent = `${cfg.discountPct}%`;
+  if (cfg.description) { $('about').hidden = false; $('description').textContent = cfg.description; }
+  $('amenities').innerHTML = (cfg.amenities || []).map(a => `<li><span class="ic">${icon(a)}</span>${esc(a)}</li>`).join('');
+  $('rules').innerHTML = (cfg.rules || []).map(r => `<li>${esc(r)}</li>`).join('');
+  $('checkin-time').textContent = `a partir das ${cfg.checkinTime}`; $('checkout-time').textContent = `até ${cfg.checkoutTime}`;
+  if (cfg.mapQuery) { $('map-block').hidden = false; $('map').src = `https://www.google.com/maps?q=${encodeURIComponent(cfg.mapQuery)}&output=embed`; }
+
+  const photos = (cfg.photos || []).slice(0, 5);
+  $('gallery').innerHTML = Array.from({ length: 5 }, (_, i) => photos[i] ? `<img src="${esc(photos[i])}" alt="${esc(cfg.name)}" ${i ? 'loading="lazy"' : ''}>` : PLACEHOLDER).join('');
+
+  const links = [];
+  if (cfg.instagram) links.push(`<a href="https://instagram.com/${esc(cfg.instagram)}" target="_blank" rel="noopener">${IG_ICON}<span>Instagram</span></a>`);
+  if (cfg.whatsapp) links.push(`<a href="https://wa.me/${esc(cfg.whatsapp)}" target="_blank" rel="noopener">${WA_ICON}<span>WhatsApp</span></a>`);
+  $('top-links').innerHTML = links.join('');
+  $('copy').textContent = `© ${new Date().getFullYear()} ${cfg.name}`;
+  $('foot-links').innerHTML = links.map(l => l.replace(/<svg.*?<\/svg>/, '')).join('');
+
+  for (let i = 1; i <= cfg.maxGuests; i++) $('guests').insertAdjacentHTML('beforeend', `<option value="${i}" ${i === Math.min(2, cfg.maxGuests) ? 'selected' : ''}>${i}</option>`);
+  $('guests').onchange = updateQuote;
+  resetPrice();
+  await load();
+})();
+</script>
+</body>
+</html>
