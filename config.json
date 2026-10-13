@@ -1,0 +1,47 @@
+{
+  "CABIN_NAME": "Cabana",
+  "TAGLINE": "Um refúgio romântico em meio à natureza",
+  "DESCRIPTION": "Um refúgio exclusivo para quem busca conforto, privacidade e uma experiência romântica em meio à natureza.",
+  "MAX_GUESTS": 2,
+  "BEDROOMS": 1,
+  "BEDS": 1,
+  "BATHROOMS": 1,
+  "MIN_NIGHTS": 1,
+  "CHECKIN_TIME": "13h",
+  "CHECKOUT_TIME": "10h",
+  "AIRBNB_LISTING_URL": "",
+  "AMENITIES": [
+    "Hidromassagem",
+    "Ar-condicionado",
+    "Cozinha equipada",
+    "Área gourmet",
+    "Churrasqueira",
+    "Fogueira",
+    "Vista paradisíaca",
+    "Natureza aos arredores",
+    "Wi-Fi",
+    "Estacionamento no local",
+    "Aceita animais de estimação",
+    "Roupa de cama e banho inclusas"
+  ],
+  "PERKS": ["Experiência romântica", "Decoração personalizada (sob consulta)"],
+  "INCLUDED": [
+    { "title": "Eletrodomésticos", "icon": "🔌", "items": ["Cooktop", "Forno a gás", "Micro-ondas", "Geladeira", "Filtro de barro", "Cafeteira", "Pipoqueira", "Moedor de grãos de café", "Liquidificador", "Airfryer", "Grill/sanduicheira"] },
+    { "title": "Utensílios de cozinha", "icon": "🍽️", "items": ["Panelas", "Pratos de refeição", "Pratos de sobremesa", "Bowls", "Escorredor", "Petisqueira", "Garrafa térmica", "Jarra de vidro", "Aparelho de fondue (com estopa e álcool)", "Chaleira", "Saca-rolha", "Talheres", "Copos", "Xícaras", "Canecas", "Taças de champanhe", "Taças de vinho", "Ralador", "Cortador de pizza", "Colheres de preparo", "Pegador", "Abridor de lata e garrafa", "Descanso de panela"] },
+    { "title": "Temperos e café", "icon": "☕", "items": ["Sal", "Sal grosso", "Manjericão desidratado", "Óleo", "Café em grãos", "Café moído", "Açúcar"], "note": "Leve água para consumo." },
+    { "title": "Limpeza", "icon": "🧼", "items": ["Detergente", "Veja", "Bucha de louça", "Esponja de aço", "Pano tipo Perfex", "Saco de lixo", "Fósforo/isqueiro"] },
+    { "title": "Banheiro", "icon": "🚿", "items": ["Papel higiênico", "Secador de cabelo", "Shampoo", "Condicionador", "Sabonete líquido", "Toalha de rosto", "Toalha de chão"] }
+  ],
+  "RULES": [
+    "Leve água para consumo",
+    "Churrasqueira: não oferecemos carvão",
+    "Fogueira: não oferecemos lenha",
+    "Animais de estimação são bem-vindos"
+  ],
+  "MAPS_URL": "https://maps.app.goo.gl/tG1fy2uY7w7zEGwp8",
+  "NEARBY": [
+    "Fácil acesso (use o Google Maps para chegar)",
+    "Estacionamento no local",
+    "A 5 minutos do vilarejo, com mercado, açougue, farmácia e posto de combustível"
+  ]
+}

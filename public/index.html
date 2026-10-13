@@ -63,6 +63,21 @@
   .times small { display:block; color:var(--muted); font-size:.8rem; }
   .times b { font-size:1.1rem; }
   .map { width:100%; height:300px; border:0; border-radius:var(--radius); }
+  .perks { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0; padding:0; list-style:none; }
+  .perks li { background:var(--soft); color:var(--accent); padding:7px 12px; border-radius:99px; font-size:.88rem; font-weight:500; }
+  .perks li::before { content:'✨ '; }
+  details.inc { border:1px solid var(--line); border-radius:12px; background:var(--card); }
+  details.inc + details.inc { margin-top:10px; }
+  details.inc summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:12px; padding:14px 16px; font-weight:500; }
+  details.inc summary::-webkit-details-marker { display:none; }
+  details.inc summary .count { margin-left:auto; color:var(--muted); font-size:.85rem; font-weight:400; }
+  details.inc summary .count::after { content:' ▾'; }
+  details.inc[open] summary .count::after { content:' ▴'; }
+  details.inc ul { columns:2; column-gap:24px; margin:0; padding:0 16px 14px 44px; color:#3c3f37; font-size:.93rem; }
+  details.inc li { margin:3px 0; break-inside:avoid; }
+  details.inc .note { margin:0 16px 14px; padding:10px 12px; background:#fff6e0; border-radius:8px; font-size:.88rem; }
+  .btn-outline { display:inline-flex; align-items:center; gap:8px; margin-top:16px; padding:12px 18px; border:1px solid var(--ink); border-radius:12px; text-decoration:none; font-weight:600; }
+  @media (max-width:520px) { details.inc ul { columns:1; } }
 
   /* Calendário */
   .cal-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
@@ -153,11 +168,17 @@
         <section class="block" id="about" hidden>
           <h2>Sobre o espaço</h2>
           <p class="desc" id="description"></p>
+          <ul class="perks" id="perks"></ul>
         </section>
 
         <section class="block">
           <h2>O que este lugar oferece</h2>
           <ul class="amenities" id="amenities"></ul>
+        </section>
+
+        <section class="block" id="included-block" hidden>
+          <h2>Itens inclusos</h2>
+          <div id="included"></div>
         </section>
 
         <section class="block" id="datas">
@@ -170,7 +191,7 @@
         </section>
 
         <section class="block">
-          <h2>Regras da casa</h2>
+          <h2>Bom saber</h2>
           <div class="times">
             <div><small>Check-in</small><b id="checkin-time"></b></div>
             <div><small>Check-out</small><b id="checkout-time"></b></div>
@@ -180,7 +201,9 @@
 
         <section class="block" id="map-block" hidden>
           <h2>Onde você vai estar</h2>
-          <iframe class="map" id="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa"></iframe>
+          <ul class="rules" id="nearby"></ul>
+          <iframe class="map" id="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa" hidden style="margin-top:16px"></iframe>
+          <a class="btn-outline" id="maps-link" target="_blank" rel="noopener" hidden>📍 Abrir no Google Maps</a>
         </section>
       </div>
 
@@ -234,11 +257,12 @@
 const $ = id => document.getElementById(id);
 const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: v % 1 ? 2 : 0 });
 const iso = d => d.toISOString().slice(0, 10);
+const addDays = (s, n) => iso(new Date(Date.parse(s + 'T00:00:00Z') + n * 864e5));
 const br = s => new Date(s + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'UTC' }).replace('.', '');
 const today = iso(new Date(Date.now() - new Date().getTimezoneOffset() * 6e4));
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
-const ICONS = [[/wi-?fi|internet/i, '📶'], [/cozinha/i, '🍳'], [/lareira/i, '🔥'], [/estaciona|garagem/i, '🚗'], [/hidro|banheira|ofur/i, '🛁'],
+const ICONS = [[/wi-?fi|internet/i, '📶'], [/fogueira/i, '🔥'], [/gourmet/i, '🍷'], [/animais/i, '🐾'], [/natureza aos|arredores/i, '🌳'], [/roupa de cama/i, '🛏️'], [/cozinha/i, '🍳'], [/lareira/i, '🔥'], [/estaciona|garagem/i, '🚗'], [/hidro|banheira|ofur/i, '🛁'],
   [/piscina/i, '🏊'], [/ar[- ]condicionado|ar cond/i, '❄️'], [/vista|montanha|natureza|mata/i, '⛰️'], [/pet/i, '🐾'], [/cama|roup[ãa]o|toalha/i, '🛏️'],
   [/churras/i, '🍖'], [/tv|netflix|smart/i, '📺'], [/varanda|terra[çc]o|deck/i, '🌿'], [/caf[ée]/i, '☕'], [/jardim|quintal/i, '🌳']];
 const icon = a => (ICONS.find(([re]) => re.test(a)) || [, '✓'])[1];
@@ -278,7 +302,7 @@ function render() {
     el.appendChild(g); box.appendChild(el);
   }
   $('prev').disabled = offset === 0;
-  $('pick-hint').textContent = !checkIn ? 'Toque no dia de chegada' : !checkOut ? 'Agora toque no dia de saída' : `${br(checkIn)} a ${br(checkOut)}. Toque em outro dia para mudar.`;
+  $('pick-hint').textContent = !checkIn ? 'Toque no dia de chegada' : !checkOut ? `Agora toque no dia de saída (check-out). Ex.: entrada dia ${+checkIn.slice(8)} e saída dia ${+addDays(checkIn, 2).slice(8)} = 2 diárias.` : `Entrada ${br(checkIn)}, saída ${br(checkOut)}. Toque em outro dia para mudar.`;
   $('ci-label').textContent = checkIn ? br(checkIn) : 'Adicionar data';
   $('co-label').textContent = checkOut ? br(checkOut) : 'Adicionar data';
 }
@@ -303,11 +327,11 @@ async function updateQuote() {
   if (!checkIn || !checkOut) { resetPrice(); return; }
   const r = await fetch(`/api/quote?checkIn=${checkIn}&checkOut=${checkOut}`); const q = await r.json();
   if (!r.ok) { resetPrice(); $('err').textContent = q.error; return; }
-  const n = plural(q.nights, 'noite', 'noites');
+  const n = plural(q.nights, 'diária', 'diárias');
   $('headline-price').textContent = fmt(q.total); $('headline-sub').textContent = `total · ${n}`;
   $('save-pill').hidden = false; $('save-pill').textContent = `Você economiza ${fmt(q.savings)}`;
   $('quote').innerHTML = `<div class="compare">
-      <div class="r"><span>Diárias (${n})</span><span>${fmt(q.lodging)}</span></div>
+      <div class="r"><span>${n}</span><span>${fmt(q.lodging)}</span></div>
       ${q.cleaning ? `<div class="r"><span>Taxa de limpeza</span><span>${fmt(q.cleaning)}</span></div>` : ''}
       <div class="r"><span>Taxa de serviço do Airbnb</span><span>${fmt(q.airbnbFee)}</span></div>
       <div class="r"><small>Total no Airbnb</small><span class="strike">${fmt(q.airbnbTotal)}</span></div>
@@ -352,7 +376,18 @@ async function load() { busy = (await (await fetch('/api/availability')).json())
   $('amenities').innerHTML = (cfg.amenities || []).map(a => `<li><span class="ic">${icon(a)}</span>${esc(a)}</li>`).join('');
   $('rules').innerHTML = (cfg.rules || []).map(r => `<li>${esc(r)}</li>`).join('');
   $('checkin-time').textContent = `a partir das ${cfg.checkinTime}`; $('checkout-time').textContent = `até ${cfg.checkoutTime}`;
-  if (cfg.mapQuery) { $('map-block').hidden = false; $('map').src = `https://www.google.com/maps?q=${encodeURIComponent(cfg.mapQuery)}&output=embed`; }
+  $('perks').innerHTML = (cfg.perks || []).map(p => `<li>${esc(p)}</li>`).join('');
+  if ((cfg.included || []).length) {
+    $('included-block').hidden = false;
+    $('included').innerHTML = cfg.included.map(g => `<details class="inc"><summary><span>${esc(g.icon || '✓')}</span>${esc(g.title)}<span class="count">${g.items.length} itens</span></summary>
+      <ul>${g.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>${g.note ? `<p class="note">${esc(g.note)}</p>` : ''}</details>`).join('');
+  }
+  if (cfg.mapQuery || cfg.mapsUrl || (cfg.nearby || []).length) {
+    $('map-block').hidden = false;
+    $('nearby').innerHTML = (cfg.nearby || []).map(n => `<li>${esc(n)}</li>`).join('');
+    if (cfg.mapQuery) { $('map').hidden = false; $('map').src = `https://www.google.com/maps?q=${encodeURIComponent(cfg.mapQuery)}&output=embed`; }
+    if (cfg.mapsUrl) { $('maps-link').hidden = false; $('maps-link').href = cfg.mapsUrl; }
+  }
 
   const photos = (cfg.photos || []).slice(0, 5);
   $('gallery').innerHTML = Array.from({ length: 5 }, (_, i) => photos[i] ? `<img src="${esc(photos[i])}" alt="${esc(cfg.name)}" ${i ? 'loading="lazy"' : ''}>` : PLACEHOLDER).join('');

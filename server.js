@@ -31,6 +31,10 @@ const CFG = {
   CHECKIN_TIME: env('CHECKIN_TIME', '15:00'),
   CHECKOUT_TIME: env('CHECKOUT_TIME', '12:00'),
   MAP_QUERY: env('MAP_QUERY', ''),    // endereço ou coordenadas para o mapa
+  MAPS_URL: env('MAPS_URL', ''),      // link do Google Maps para "Como chegar"
+  NEARBY: env('NEARBY', []),          // ex.: ["Estacionamento no local", "5 min do vilarejo"]
+  PERKS: env('PERKS', []),            // diferenciais
+  INCLUDED: env('INCLUDED', []),      // [{ "title": "Cozinha", "icon": "🍳", "items": [...], "note": "..." }]
   AIRBNB_ICAL_URLS: String(env('AIRBNB_ICAL_URLS', '')).split(',').map(s => s.trim()).filter(Boolean),
   SYNC_MINUTES: Number(env('SYNC_MINUTES', 15)),
   // Preços como estão no Airbnb; o preço direto é calculado a partir deles
@@ -145,7 +149,7 @@ function whatsappLink(b) {
     ``,
     `Código: ${b.id}`,
     `Check-in: ${br(b.checkIn)}`,
-    `Check-out: ${br(b.checkOut)} (${b.nights} noite${b.nights > 1 ? 's' : ''})`,
+    `Check-out: ${br(b.checkOut)} (${b.nights} diária${b.nights > 1 ? 's' : ''})`,
     `Hóspedes: ${b.guests}`,
     `Nome: ${b.name}`,
     `Valor direto: ${money(b.total)} (no Airbnb sairia ${money(b.airbnbTotal)})`,
@@ -209,7 +213,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { name: CFG.CABIN_NAME, minNights: CFG.MIN_NIGHTS, maxGuests: CFG.MAX_GUESTS, holdHours: CFG.HOLD_HOURS, discountPct: CFG.DIRECT_DISCOUNT_PCT, airbnbUrl: CFG.AIRBNB_LISTING_URL,
         tagline: CFG.TAGLINE, location: CFG.LOCATION, description: CFG.DESCRIPTION, photos: CFG.PHOTOS, instagram: CFG.INSTAGRAM,
         bedrooms: CFG.BEDROOMS, beds: CFG.BEDS, bathrooms: CFG.BATHROOMS, amenities: CFG.AMENITIES, rules: CFG.RULES,
-        checkinTime: CFG.CHECKIN_TIME, checkoutTime: CFG.CHECKOUT_TIME, mapQuery: CFG.MAP_QUERY, whatsapp: CFG.WHATSAPP });
+        checkinTime: CFG.CHECKIN_TIME, checkoutTime: CFG.CHECKOUT_TIME, mapQuery: CFG.MAP_QUERY,
+        mapsUrl: CFG.MAPS_URL, nearby: CFG.NEARBY, perks: CFG.PERKS, included: CFG.INCLUDED, whatsapp: CFG.WHATSAPP });
     }
     // Diagnóstico da sincronização (sem expor o link do Airbnb)
     if (req.method === 'GET' && p === '/api/status') {
