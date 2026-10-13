@@ -50,7 +50,7 @@ const CFG = {
 
 // --- Armazenamento em arquivo JSON ----------------------------------------
 const DB_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'db.json'); // DATA_DIR: disco persistente na hospedagem
-let db = { bookings: [], blocks: [], airbnb: [], lastSync: null, lastSyncError: null };
+let db = { bookings: [], blocks: [], airbnb: [], specialRates: [], pricing: {}, lastSync: null, lastSyncError: null };
 if (fs.existsSync(DB_FILE)) db = { ...db, ...JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) };
 if (!CFG.FEED_TOKEN) { db.feedToken ||= crypto.randomBytes(12).toString('hex'); CFG.FEED_TOKEN = db.feedToken; }
 function save() { fs.mkdirSync(path.dirname(DB_FILE), { recursive: true }); fs.writeFileSync(DB_FILE + '.tmp', JSON.stringify(db, null, 2)); fs.renameSync(DB_FILE + '.tmp', DB_FILE); }
@@ -100,18 +100,29 @@ function busyRanges() {
   ];
 }
 function isFree(checkIn, checkOut) { return !busyRanges().some(r => overlaps(checkIn, checkOut, r.start, r.end)); }
+// Preços editados no painel valem mais que os do config
+function pricing() {
+  const p = db.pricing || {};
+  return { nightly: p.nightly ?? CFG.NIGHTLY_RATE, weekend: p.weekend ?? CFG.WEEKEND_RATE, cleaning: p.cleaning ?? CFG.CLEANING_FEE };
+}
+function nightRate(d, pr) {
+  // Feriados/datas especiais: a noite de `start` até a noite de `end`, inclusive
+  const special = (db.specialRates || []).find(r => d >= r.start && d <= r.end);
+  if (special) return special.rate;
+  const dow = new Date(d + 'T00:00:00Z').getUTCDay();
+  return (pr.weekend && (dow === 5 || dow === 6)) ? pr.weekend : pr.nightly;
+}
 function quote(checkIn, checkOut) {
+  const pr = pricing();
   let total = 0;
-  for (let d = checkIn; d < checkOut; d = addDays(d, 1)) {
-    const dow = new Date(d + 'T00:00:00Z').getUTCDay();
-    total += (CFG.WEEKEND_RATE && (dow === 5 || dow === 6)) ? CFG.WEEKEND_RATE : CFG.NIGHTLY_RATE;
-  }
-  const subtotal = total + CFG.CLEANING_FEE;
+  for (let d = checkIn; d < checkOut; d = addDays(d, 1)) total += nightRate(d, pr);
+  const cleaning = pr.cleaning || 0;
+  const subtotal = total + cleaning;
   const airbnbFee = Math.round(subtotal * CFG.AIRBNB_GUEST_FEE_PCT) / 100;
   const airbnbTotal = subtotal + airbnbFee;
   const directTotal = Math.round(airbnbTotal * (100 - CFG.DIRECT_DISCOUNT_PCT) / 100); // arredonda para reais inteiros
   return {
-    nights: nightsBetween(checkIn, checkOut), lodging: total, cleaning: CFG.CLEANING_FEE, airbnbFee, airbnbTotal,
+    nights: nightsBetween(checkIn, checkOut), lodging: total, cleaning, airbnbFee, airbnbTotal,
     total: directTotal, savings: Math.round((airbnbTotal - directTotal) * 100) / 100, discountPct: CFG.DIRECT_DISCOUNT_PCT,
   };
 }
@@ -237,7 +248,8 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'GET' && p === '/api/admin/state') {
         expireHolds();
         const feedUrl = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/ical/${CFG.FEED_TOKEN}.ics`;
-        return send(res, 200, { bookings: db.bookings, blocks: db.blocks, airbnb: db.airbnb, lastSync: db.lastSync, lastSyncError: db.lastSyncError, feedUrl, airbnbConfigured: CFG.AIRBNB_ICAL_URLS.length > 0 });
+        return send(res, 200, { bookings: db.bookings, blocks: db.blocks, airbnb: db.airbnb, lastSync: db.lastSync, lastSyncError: db.lastSyncError, feedUrl, airbnbConfigured: CFG.AIRBNB_ICAL_URLS.length > 0,
+          pricing: pricing(), specialRates: db.specialRates || [] });
       }
       if (req.method === 'POST' && p === '/api/admin/sync') { await syncAirbnb(); return send(res, 200, { ok: true, lastSync: db.lastSync, error: db.lastSyncError }); }
       const m = p.match(/^\/api\/admin\/bookings\/([\w]+)\/(confirmar|cancelar)$/);
@@ -251,6 +263,23 @@ const server = http.createServer(async (req, res) => {
         save();
         return send(res, 200, b);
       }
+      if (req.method === 'PUT' && p === '/api/admin/pricing') {
+        const body = await readBody(req);
+        const num = v => (v === '' || v == null) ? null : Number(v);
+        const next = { nightly: num(body.nightly), weekend: num(body.weekend), cleaning: num(body.cleaning) };
+        if (!(next.nightly > 0) || [next.weekend, next.cleaning].some(v => v != null && !(v >= 0))) return send(res, 400, { error: 'valores inválidos' });
+        db.pricing = next; save();
+        return send(res, 200, pricing());
+      }
+      if (req.method === 'POST' && p === '/api/admin/special') {
+        const { start, end, rate, label } = await readBody(req);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end < start || !(Number(rate) > 0)) return send(res, 400, { error: 'dados inválidos' });
+        const item = { id: 'P' + Date.now().toString(36), start, end, rate: Number(rate), label: String(label || '').slice(0, 100) };
+        (db.specialRates ||= []).push(item); save();
+        return send(res, 201, item);
+      }
+      const sp = p.match(/^\/api\/admin\/special\/(\w+)$/);
+      if (req.method === 'DELETE' && sp) { db.specialRates = (db.specialRates || []).filter(r => r.id !== sp[1]); save(); return send(res, 200, { ok: true }); }
       if (req.method === 'POST' && p === '/api/admin/blocks') {
         const { start, end, reason } = await readBody(req);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end <= start) return send(res, 400, { error: 'datas inválidas' });

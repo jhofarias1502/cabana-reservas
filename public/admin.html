@@ -48,6 +48,27 @@
   </div>
 
   <div class="card">
+    <h2>Preços</h2>
+    <p class="muted">Use os mesmos valores do Airbnb. O site soma limpeza e a taxa do Airbnb e dá o desconto em cima do total.</p>
+    <form class="inline" id="price-form">
+      <label>Diária (dom a qui)<br><input type="number" min="1" step="1" id="p-nightly" required></label>
+      <label>Diária sex e sáb<br><input type="number" min="0" step="1" id="p-weekend" placeholder="igual à diária"></label>
+      <label>Taxa de limpeza<br><input type="number" min="0" step="1" id="p-cleaning"></label>
+      <button>Salvar preços</button>
+    </form>
+    <h2 style="margin-top:22px">Feriados e datas especiais</h2>
+    <p class="muted">Noites com preço diferente. Ex.: Natal, de 24/12 a 25/12, R$ 1.500 por noite.</p>
+    <form class="inline" id="special-form">
+      <label>Primeira noite<br><input type="date" id="s-start" required></label>
+      <label>Última noite<br><input type="date" id="s-end" required></label>
+      <label>Diária<br><input type="number" min="1" step="1" id="s-rate" required></label>
+      <label>Nome<br><input id="s-label" placeholder="Natal, Carnaval..."></label>
+      <button>Adicionar</button>
+    </form>
+    <table style="margin-top:10px"><tbody id="specials"></tbody></table>
+  </div>
+
+  <div class="card">
     <h2>Bloqueios manuais</h2>
     <form class="inline" id="block-form">
       <label>De<br><input type="date" id="b-start" required></label>
@@ -71,6 +92,13 @@ async function api(path, opts = {}) {
 async function load() {
   const s = await api('state');
   $('feed').value = s.feedUrl;
+  if (document.activeElement?.form !== $('price-form')) {
+    $('p-nightly').value = s.pricing.nightly ?? ''; $('p-weekend').value = s.pricing.weekend ?? ''; $('p-cleaning').value = s.pricing.cleaning ?? '';
+  }
+  $('specials').innerHTML = s.specialRates.slice().sort((a, b) => a.start.localeCompare(b.start)).map(r => `<tr>
+    <td>${br(r.start)}${r.end !== r.start ? ' a ' + br(r.end) : ''}</td><td>${fmt(r.rate)} / noite</td><td>${esc(r.label)}</td>
+    <td><button class="secondary" onclick="unspecial('${r.id}')">Remover</button></td></tr>`).join('')
+    || '<tr><td class="muted">Nenhuma data especial.</td></tr>';
   $('sync').innerHTML = !s.airbnbConfigured ? '<span class="warn">Link iCal do Airbnb ainda não configurado.</span>'
     : `Última sincronização: ${s.lastSync ? new Date(s.lastSync).toLocaleString('pt-BR') : 'nunca'}` + (s.lastSyncError ? `<br><span class="err">Erro: ${esc(s.lastSyncError)}</span>` : '');
   $('bookings').innerHTML = s.bookings.slice().reverse().map(b => `<tr>
@@ -88,6 +116,9 @@ async function load() {
     <td><button class="secondary" onclick="unblock('${k.id}')">Remover</button></td></tr>`).join('');
 }
 async function act(id, what) { if (what === 'cancelar' && !confirm('Cancelar esta reserva?')) return; await api(`bookings/${id}/${what}`, { method:'POST' }); load(); }
+async function unspecial(id) { await api('special/' + id, { method:'DELETE' }); load(); }
+$('price-form').onsubmit = async e => { e.preventDefault(); await api('pricing', { method:'PUT', body: JSON.stringify({ nightly:$('p-nightly').value, weekend:$('p-weekend').value, cleaning:$('p-cleaning').value }) }); alert('Preços salvos'); load(); };
+$('special-form').onsubmit = async e => { e.preventDefault(); await api('special', { method:'POST', body: JSON.stringify({ start:$('s-start').value, end:$('s-end').value, rate:$('s-rate').value, label:$('s-label').value }) }); e.target.reset(); load(); };
 async function unblock(id) { await api('blocks/' + id, { method:'DELETE' }); load(); }
 $('sync-now').onclick = async () => { $('sync-now').disabled = true; await api('sync', { method:'POST' }); $('sync-now').disabled = false; load(); };
 $('copy-feed').onclick = () => navigator.clipboard.writeText($('feed').value);
