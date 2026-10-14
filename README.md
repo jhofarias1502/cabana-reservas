@@ -8,6 +8,7 @@ Site de reserva direta com calendário sincronizado com o Airbnb, para não ter 
 - **Site → Airbnb:** o servidor publica um feed iCal (`/ical/<token>.ics`) só com as reservas diretas e bloqueios manuais. Você cola esse link no Airbnb e ele bloqueia as datas lá.
 - **Reserva direta:** o hóspede (vindo do link no Instagram) escolhe as datas e vê lado a lado o preço no Airbnb (diárias + limpeza + taxa de serviço do Airbnb) e o preço direto, 20% menor. Ao tocar em **Continuar no WhatsApp**, as datas ficam seguradas por 24 h e o WhatsApp abre com uma mensagem pronta (datas, hóspedes, valor). Você combina o pagamento por lá e clica em **Confirmar** no painel. Se não confirmar no prazo, as datas se liberam sozinhas.
 - **Opção Airbnb:** o link "Prefiro reservar pelo Airbnb" abre seu anúncio já com as datas e hóspedes escolhidos.
+- **Gestão `/gestao`** (mesma senha): reservas, diárias, ocupação, faturamento, custos e lucro por mês. Reservas do site entram ao confirmar o pagamento; as do Airbnb entram pela sincronização e você digita o valor recebido. Custos por estadia, fixos mensais e despesas avulsas.
 - **Painel `/admin`** (senha em `ADMIN_PASSWORD`): reservas diretas, reservas importadas do Airbnb, bloqueios manuais, link do feed e alerta de conflito.
 
 ## Rodar

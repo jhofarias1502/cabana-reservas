@@ -56,7 +56,8 @@ const CFG = {
 
 // --- Armazenamento em arquivo JSON ----------------------------------------
 const DB_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'db.json'); // DATA_DIR: disco persistente na hospedagem
-let db = { bookings: [], blocks: [], airbnb: [], specialRates: [], pricing: {}, lastSync: null, lastSyncError: null };
+let db = { bookings: [], blocks: [], airbnb: [], specialRates: [], pricing: {}, lastSync: null, lastSyncError: null,
+  stays: {}, costs: { perStay: [], monthly: [] }, expenses: [] };
 if (fs.existsSync(DB_FILE)) db = { ...db, ...JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) };
 if (!CFG.FEED_TOKEN) { db.feedToken ||= crypto.randomBytes(12).toString('hex'); CFG.FEED_TOKEN = db.feedToken; }
 function save() { fs.mkdirSync(path.dirname(DB_FILE), { recursive: true }); fs.writeFileSync(DB_FILE + '.tmp', JSON.stringify(db, null, 2)); fs.renameSync(DB_FILE + '.tmp', DB_FILE); }
@@ -80,6 +81,7 @@ async function syncAirbnb() {
     for (const b of activeBookings()) {
       b.conflict = all.some(e => /reserved/i.test(e.summary || '') && overlaps(b.checkIn, b.checkOut, e.start, e.end)) || undefined;
     }
+    recordAirbnbStays(all);
   } catch (err) {
     db.lastSyncError = `${new Date().toISOString()} ${err.message}`;
     console.error('Falha na sincronização:', err.message);
@@ -88,6 +90,67 @@ async function syncAirbnb() {
 }
 async function syncIfStale(maxAgeMin = 5) {
   if (!db.lastSync || Date.now() - Date.parse(db.lastSync) > maxAgeMin * 60000) await syncAirbnb();
+}
+
+
+// --- Gestão: estadias, custos e faturamento --------------------------------
+// db.stays guarda cada estadia de forma permanente (o feed do Airbnb some com o passado).
+// Chaves: "site:<id da reserva>", "airbnb:<uid do iCal>", "manual:<id>".
+function recordSiteStay(b) {
+  const key = 'site:' + b.id, cur = db.stays[key];
+  if (b.status === 'confirmada') {
+    db.stays[key] = { revenue: b.total, extraCost: 0, notes: '', ...cur, key, channel: 'site', checkIn: b.checkIn, checkOut: b.checkOut, guest: b.name, cancelled: false };
+  } else if (cur) cur.cancelled = true;
+}
+function recordAirbnbStays(events) {
+  const today = toISO(new Date());
+  const seen = new Set();
+  for (const e of events) {
+    if (!/reserved/i.test(e.summary || '') || !e.uid) continue; // só reservas de hóspedes, não bloqueios
+    const key = 'airbnb:' + e.uid; seen.add(key);
+    const cur = db.stays[key];
+    db.stays[key] = { revenue: null, extraCost: 0, notes: '', guest: '', ...cur, key, channel: 'airbnb', checkIn: e.start, checkOut: e.end, cancelled: false };
+  }
+  // Reserva futura que sumiu do feed = cancelada no Airbnb. As passadas somem naturalmente e ficam guardadas.
+  for (const st of Object.values(db.stays)) {
+    if (st.channel === 'airbnb' && !seen.has(st.key) && st.checkOut > today) st.cancelled = true;
+  }
+}
+for (const b of db.bookings) recordSiteStay(b); // reservas confirmadas antes desta versão
+
+function financeReport(year) {
+  const y = String(year);
+  const perStayCost = (db.costs.perStay || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const monthlyCost = (db.costs.monthly || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const nowYM = toISO(new Date()).slice(0, 7);
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const ym = `${y}-${String(i + 1).padStart(2, '0')}`;
+    const days = new Date(Date.UTC(Number(y), i + 1, 0)).getUTCDate();
+    return { month: ym, stays: 0, nights: 0, days, revenue: 0, revenueSite: 0, revenueAirbnb: 0, revenueOther: 0, missingRevenue: 0,
+      stayCosts: 0, fixedCosts: ym <= nowYM && ym >= (db.costs.since || nowYM) ? monthlyCost : 0, expenses: 0 };
+  });
+  const stays = Object.values(db.stays).filter(st => !st.cancelled && st.checkIn.slice(0, 4) === y).sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+  for (const st of stays) {
+    const m = months[Number(st.checkIn.slice(5, 7)) - 1]; // estadia conta no mês do check-in
+    const n = nightsBetween(st.checkIn, st.checkOut);
+    m.stays++; m.nights += n;
+    if (st.revenue == null) m.missingRevenue++;
+    const r = Number(st.revenue) || 0;
+    m.revenue += r;
+    m[st.channel === 'site' ? 'revenueSite' : st.channel === 'airbnb' ? 'revenueAirbnb' : 'revenueOther'] += r;
+    m.stayCosts += perStayCost + (Number(st.extraCost) || 0);
+  }
+  for (const e of db.expenses || []) if (e.date.slice(0, 4) === y) months[Number(e.date.slice(5, 7)) - 1].expenses += Number(e.amount) || 0;
+  for (const m of months) {
+    m.costs = m.stayCosts + m.fixedCosts + m.expenses;
+    m.profit = m.revenue - m.costs;
+    m.occupancy = m.nights / m.days;
+  }
+  const sum = k => months.reduce((s, m) => s + m[k], 0);
+  const total = Object.fromEntries(['stays', 'nights', 'days', 'revenue', 'revenueSite', 'revenueAirbnb', 'revenueOther', 'missingRevenue', 'stayCosts', 'fixedCosts', 'expenses', 'costs', 'profit'].map(k => [k, sum(k)]));
+  total.occupancy = total.nights / total.days;
+  return { year: Number(y), months, total, stays: stays.map(st => ({ ...st, nights: nightsBetween(st.checkIn, st.checkOut) })),
+    costs: db.costs, perStayCost, monthlyCost, expenses: (db.expenses || []).filter(e => e.date.slice(0, 4) === y).sort((a, b) => a.date.localeCompare(b.date)) };
 }
 
 // --- Regras de disponibilidade --------------------------------------------
@@ -180,7 +243,7 @@ function isAdmin(req) {
   const a = Buffer.from(pass), b = Buffer.from(CFG.ADMIN_PASSWORD);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
-const STATIC = { '/': 'index.html', '/admin': 'admin.html' };
+const STATIC = { '/': 'index.html', '/admin': 'admin.html', '/gestao': 'gestao.html' };
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -188,7 +251,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // Página pública e painel
     if (req.method === 'GET' && STATIC[p]) {
-      if (p === '/admin' && !isAdmin(req)) return send(res, 401, 'Acesso restrito', 'text/plain; charset=utf-8', { 'WWW-Authenticate': 'Basic realm="Cabana"' });
+      if ((p === '/admin' || p === '/gestao') && !isAdmin(req)) return send(res, 401, 'Acesso restrito', 'text/plain; charset=utf-8', { 'WWW-Authenticate': 'Basic realm="Cabana"' });
       return send(res, 200, fs.readFileSync(path.join(__dirname, 'public', STATIC[p])), 'text/html; charset=utf-8');
     }
 
@@ -256,7 +319,7 @@ const server = http.createServer(async (req, res) => {
 
     // API do painel
     if (p.startsWith('/api/admin/')) {
-      if (!isAdmin(req)) return send(res, 401, { error: 'não autorizado' });
+      if (!isAdmin(req)) return send(res, 401, { error: 'não autorizado' }, undefined, { 'WWW-Authenticate': 'Basic realm="Cabana"' });
       if (req.method === 'GET' && p === '/api/admin/state') {
         expireHolds();
         const feedUrl = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/ical/${CFG.FEED_TOKEN}.ics`;
@@ -272,6 +335,7 @@ const server = http.createServer(async (req, res) => {
           if (b.status === 'expirada' && !isFree(b.checkIn, b.checkOut)) return send(res, 409, { error: 'As datas já foram ocupadas.' });
           b.status = 'confirmada'; b.confirmedAt = new Date().toISOString();
         } else b.status = 'cancelada';
+        recordSiteStay(b);
         save();
         return send(res, 200, b);
       }
@@ -301,6 +365,52 @@ const server = http.createServer(async (req, res) => {
         db.blocks.push(block); save();
         return send(res, 201, block);
       }
+      // Gestão
+      if (req.method === 'GET' && p === '/api/admin/finance') {
+        const year = /^\d{4}$/.test(url.searchParams.get('year') || '') ? url.searchParams.get('year') : toISO(new Date()).slice(0, 4);
+        return send(res, 200, financeReport(year));
+      }
+      const money = v => (v === '' || v == null) ? null : Math.round(Number(v) * 100) / 100;
+      if (req.method === 'PUT' && p === '/api/admin/costs') {
+        const body = await readBody(req);
+        const list = a => (Array.isArray(a) ? a : []).map(c => ({ name: String(c.name || '').slice(0, 80), amount: money(c.amount) }))
+          .filter(c => c.name && c.amount != null && c.amount >= 0);
+        const since = /^\d{4}-\d{2}$/.test(body.since || '') ? body.since : (db.costs.since || toISO(new Date()).slice(0, 7));
+        db.costs = { perStay: list(body.perStay), monthly: list(body.monthly), since }; save();
+        return send(res, 200, db.costs);
+      }
+      if (req.method === 'POST' && p === '/api/admin/stays') {
+        const { checkIn, checkOut, guest, revenue, channel, notes } = await readBody(req);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut) || checkOut <= checkIn) return send(res, 400, { error: 'datas inválidas' });
+        const key = 'manual:' + Date.now().toString(36);
+        db.stays[key] = { key, channel: ['airbnb', 'site'].includes(channel) ? channel : 'outro', checkIn, checkOut, guest: String(guest || '').slice(0, 120),
+          revenue: money(revenue), extraCost: 0, notes: String(notes || '').slice(0, 300), cancelled: false };
+        save(); return send(res, 201, db.stays[key]);
+      }
+      const st = p.match(/^\/api\/admin\/stays\/(.+)$/);
+      if (st && (req.method === 'PUT' || req.method === 'DELETE')) {
+        const key = decodeURIComponent(st[1]), item = db.stays[key];
+        if (!item) return send(res, 404, { error: 'estadia não encontrada' });
+        if (req.method === 'DELETE') {
+          if (item.channel === 'site' || key.startsWith('airbnb:')) item.cancelled = true; else delete db.stays[key];
+        } else {
+          const body = await readBody(req);
+          if ('revenue' in body) item.revenue = money(body.revenue);
+          if ('extraCost' in body) item.extraCost = money(body.extraCost) || 0;
+          if ('guest' in body) item.guest = String(body.guest || '').slice(0, 120);
+          if ('notes' in body) item.notes = String(body.notes || '').slice(0, 300);
+        }
+        save(); return send(res, 200, item || { ok: true });
+      }
+      if (req.method === 'POST' && p === '/api/admin/expenses') {
+        const { date, desc, amount } = await readBody(req);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !(money(amount) > 0)) return send(res, 400, { error: 'dados inválidos' });
+        const item = { id: 'E' + Date.now().toString(36), date, desc: String(desc || '').slice(0, 120), amount: money(amount) };
+        (db.expenses ||= []).push(item); save();
+        return send(res, 201, item);
+      }
+      const ex = p.match(/^\/api\/admin\/expenses\/(\w+)$/);
+      if (req.method === 'DELETE' && ex) { db.expenses = (db.expenses || []).filter(e => e.id !== ex[1]); save(); return send(res, 200, { ok: true }); }
       const d = p.match(/^\/api\/admin\/blocks\/(\w+)$/);
       if (req.method === 'DELETE' && d) { db.blocks = db.blocks.filter(k => k.id !== d[1]); save(); return send(res, 200, { ok: true }); }
     }

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão da Cabana</title>
+<style>
+  :root { --bg:#f7f4ef; --ink:#2b2a27; --muted:#7a756c; --accent:#3f6b4f; --err:#b3412e; --warn:#a46a00; --line:#eee; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 980px; margin:0 auto; padding: 20px 16px 48px; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  h1 { margin:0; font-size:1.5rem; } h2 { margin:0 0 10px; font-size:1.1rem; }
+  a { color:var(--accent); }
+  .card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:16px; overflow-x:auto; }
+  select, input { padding:7px 8px; border:1px solid #ddd; border-radius:8px; font:inherit; background:#fff; }
+  button { border:0; border-radius:8px; padding:7px 12px; cursor:pointer; background:var(--accent); color:#fff; font:inherit; font-size:.85rem; }
+  button.secondary { background:#e7e2da; color:var(--ink); }
+  button.link { background:none; color:var(--muted); padding:4px 6px; }
+  .tiles { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+  .tile { background:var(--bg); border-radius:12px; padding:12px; }
+  .tile .k { font-size:.8rem; color:var(--muted); }
+  .tile .v { font-size:1.35rem; font-weight:700; margin-top:4px; font-variant-numeric: tabular-nums; }
+  .tile .s { font-size:.75rem; color:var(--muted); margin-top:2px; }
+  .show-sm { display:none; }
+  .pos { color:var(--accent); } .neg { color:var(--err); }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; }
+  td.n, th.n { text-align:right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight:700; border-top:2px solid #ddd; }
+  tr.sel td { background:#f1efe9; }
+  tbody tr.click { cursor:pointer; }
+  .pill { padding:2px 8px; border-radius:99px; font-size:.75rem; background:#eee; }
+  .pill.site { background:#d6e6da; } .pill.airbnb { background:#fde0dc; } .pill.outro { background:#e6e1f2; }
+  .warn { color:var(--warn); font-weight:600; }
+  .muted { color:var(--muted); font-size:.85rem; }
+  form.inline { display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin-top:10px; }
+  td input { width:110px; }
+  .cost-row { display:flex; gap:8px; margin-bottom:6px; } .cost-row input:first-child { flex:1; min-width:0; } .cost-row input:nth-child(2) { width:110px; }
+  .cols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; }
+  .stay { border-bottom:1px solid var(--line); padding:10px 0; }
+  .stay .top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .stay .top b { font-variant-numeric: tabular-nums; }
+  .stay .fields { display:grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr); gap:8px; margin-top:8px; }
+  .stay .fields label { font-size:.75rem; color:var(--muted); }
+  .stay .fields input { width:100%; margin-top:2px; }
+  .stay .top .link { margin-left:auto; }
+  @media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, 1fr); } .cols { grid-template-columns:minmax(0,1fr); } .hide-sm { display:none; } .show-sm { display:inline !important; } th, td { padding:8px 4px; } .stay .fields { grid-template-columns: minmax(0,1fr) minmax(0,1fr); } .stay .fields label:first-child { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Gestão da Cabana</h1>
+    <div><a href="/admin">← Painel</a> &nbsp; <select id="year"></select></div>
+  </header>
+
+  <div class="card">
+    <h2 id="month-title"></h2>
+    <div class="tiles" id="tiles"></div>
+    <p class="muted" id="missing" style="margin:10px 0 0"></p>
+  </div>
+
+  <div class="card">
+    <h2>Mês a mês</h2>
+    <p class="muted" style="margin-top:-4px">Toque num mês para ver os detalhes acima. A estadia conta no mês do check-in.</p>
+    <table><thead><tr><th>Mês</th><th class="n">Reservas</th><th class="n hide-sm">Diárias</th><th class="n hide-sm">Ocupação</th><th class="n">Faturamento</th><th class="n hide-sm">Custos</th><th class="n">Lucro</th></tr></thead>
+      <tbody id="months"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Estadias</h2>
+    <p class="muted" style="margin-top:-4px">Reservas do site entram sozinhas ao confirmar o pagamento, e as do Airbnb entram pela sincronização. Nas do Airbnb, digite o <strong>valor que você recebeu</strong> (o repasse) para o faturamento ficar certo.</p>
+    <div id="stays"></div>
+    <form class="inline" id="stay-form">
+      <strong style="width:100%;font-size:.9rem">Adicionar estadia manualmente</strong>
+      <label>Check-in<br><input type="date" id="m-in" required></label>
+      <label>Check-out<br><input type="date" id="m-out" required></label>
+      <label>Canal<br><select id="m-ch"><option value="outro">Outro</option><option value="site">Site / WhatsApp</option><option value="airbnb">Airbnb</option></select></label>
+      <label>Hóspede<br><input id="m-guest"></label>
+      <label>Valor recebido<br><input type="number" step="0.01" min="0" id="m-rev"></label>
+      <button>Adicionar</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Custos</h2>
+    <div class="cols">
+      <div>
+        <strong>Por estadia</strong>
+        <p class="muted">Gasto a cada hospedagem. Ex.: limpeza, lavanderia, kit de boas-vindas.</p>
+        <div id="per-stay"></div>
+        <button class="secondary" onclick="addRow('per-stay')">+ item</button>
+      </div>
+      <div>
+        <strong>Fixos por mês</strong>
+        <p class="muted">Contas de todo mês. Ex.: luz, internet, água, hospedagem do site.</p>
+        <div id="monthly"></div>
+        <button class="secondary" onclick="addRow('monthly')">+ item</button>
+      </div>
+    </div>
+    <p style="margin:14px 0 0"><label class="muted">Custos fixos contam a partir de <input type="month" id="since"></label></p>
+    <p style="margin:10px 0 0"><button id="save-costs">Salvar custos</button> <span class="muted" id="costs-info"></span></p>
+  </div>
+
+  <div class="card">
+    <h2>Despesas avulsas</h2>
+    <p class="muted" style="margin-top:-4px">Gastos que não se repetem. Ex.: conserto, compra de enxoval, manutenção da piscina.</p>
+    <form class="inline" id="exp-form">
+      <label>Data<br><input type="date" id="e-date" required></label>
+      <label>Descrição<br><input id="e-desc" required></label>
+      <label>Valor<br><input type="number" step="0.01" min="0.01" id="e-amount" required></label>
+      <button>Adicionar</button>
+    </form>
+    <table style="margin-top:10px"><tbody id="expenses"></tbody></table>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const br = s => s.split('-').reverse().join('/');
+const fmt = v => (v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits: 0 });
+const pct = v => Math.round((v || 0) * 100) + '%';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CH = { site:'Site', airbnb:'Airbnb', outro:'Outro' };
+const now = new Date();
+let data, selMonth = now.getMonth();
+
+async function api(path, opts = {}) {
+  const r = await fetch('/api/admin/' + path, { ...opts, headers: { 'Content-Type': 'application/json' } });
+  const d = await r.json(); if (!r.ok) { alert(d.error); throw new Error(d.error); } return d;
+}
+for (let y = now.getFullYear() + 1; y >= 2024; y--) $('year').add(new Option(y, y, false, y === now.getFullYear()));
+$('year').onchange = () => { selMonth = $('year').value == now.getFullYear() ? now.getMonth() : 0; load(); };
+
+function tile(k, v, s = '', cls = '') { return `<div class="tile"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="s">${s}</div></div>`; }
+function renderSummary() {
+  const m = data.months[selMonth], t = data.total;
+  $('month-title').textContent = `${MONTHS[selMonth]} de ${data.year}`;
+  $('tiles').innerHTML =
+    tile('Faturamento', fmt(m.revenue), `Site ${fmt(m.revenueSite)} · Airbnb ${fmt(m.revenueAirbnb)}${m.revenueOther ? ' · Outro ' + fmt(m.revenueOther) : ''}`) +
+    tile('Custos', fmt(m.costs), `Estadias ${fmt(m.stayCosts)} · Fixos ${fmt(m.fixedCosts)}${m.expenses ? ' · Avulsas ' + fmt(m.expenses) : ''}`) +
+    tile('Lucro', fmt(m.profit), m.revenue ? `Margem ${pct(m.profit / m.revenue)}` : '', m.profit >= 0 ? 'pos' : 'neg') +
+    tile('Reservas', m.stays, m.stays ? `Ticket médio ${fmt(m.revenue / m.stays)}` : '') +
+    tile('Diárias vendidas', m.nights, m.nights ? `Diária média ${fmt(m.revenue / m.nights)}` : '') +
+    tile('Ocupação', pct(m.occupancy), `No ano: ${pct(t.occupancy)} · Lucro no ano ${fmt(t.profit)}`);
+  $('missing').innerHTML = t.missingRevenue ? `<span class="warn">⚠ ${t.missingRevenue} estadia(s) do Airbnb em ${data.year} sem valor recebido.</span> Preencha na lista de estadias abaixo.` : '';
+  [...$('months').children].forEach((tr, i) => tr.classList.toggle('sel', i === selMonth));
+}
+function render() {
+  const row = (label, m, cls = '') => `<tr class="${cls}"><td>${label}</td><td class="n">${m.stays}</td><td class="n hide-sm">${m.nights}</td><td class="n hide-sm">${pct(m.occupancy)}</td>
+    <td class="n">${fmt(m.revenue)}${m.missingRevenue ? ' <span class="warn" title="estadias sem valor">⚠</span>' : ''}</td><td class="n hide-sm">${fmt(m.costs)}</td><td class="n ${m.profit >= 0 ? 'pos' : 'neg'}">${fmt(m.profit)}</td></tr>`;
+  $('months').innerHTML = data.months.map((m, i) => row(`<span class="hide-sm">${MONTHS[i]}</span><span class="show-sm">${MONTHS[i].slice(0, 3)}</span>`, m, 'click')).join('') + row('Total', data.total, 'total');
+  [...$('months').querySelectorAll('tr.click')].forEach((tr, i) => tr.onclick = () => { selMonth = i; renderSummary(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  renderSummary();
+
+  $('stays').innerHTML = data.stays.slice().reverse().map(s => `<div class="stay">
+    <div class="top"><b>${br(s.checkIn)} → ${br(s.checkOut)}</b><span class="pill ${s.channel}">${CH[s.channel]}</span><span class="muted">${s.nights} diária${s.nights > 1 ? 's' : ''}</span>
+      ${s.revenue == null ? '<span class="warn" style="font-size:.8rem">falta o valor</span>' : ''}
+      <button class="link" title="remover" onclick="removeStay('${esc(s.key)}')">✕</button></div>
+    <div class="fields">
+      <label>Hóspede<input value="${esc(s.guest)}" placeholder="nome" data-k="${esc(s.key)}" data-f="guest"></label>
+      <label>Valor recebido<input type="number" step="0.01" min="0" inputmode="decimal" value="${s.revenue ?? ''}" placeholder="R$" data-k="${esc(s.key)}" data-f="revenue"${s.revenue == null ? ' style="border-color:#e0b04c"' : ''}></label>
+      <label>Custo extra<input type="number" step="0.01" min="0" inputmode="decimal" value="${s.extraCost || ''}" placeholder="0" data-k="${esc(s.key)}" data-f="extraCost"></label>
+    </div></div>`).join('')
+    || `<p class="muted">Nenhuma estadia em ${data.year}.</p>`;
+  $('stays').querySelectorAll('input').forEach(inp => inp.onchange = async () => {
+    await api('stays/' + encodeURIComponent(inp.dataset.k), { method:'PUT', body: JSON.stringify({ [inp.dataset.f]: inp.value }) });
+    load();
+  });
+
+  if (!document.activeElement || !document.activeElement.closest('#per-stay, #monthly, #since')) {
+    $('per-stay').innerHTML = ''; $('monthly').innerHTML = '';
+    (data.costs.perStay || []).forEach(c => addRow('per-stay', c)); (data.costs.monthly || []).forEach(c => addRow('monthly', c));
+    $('since').value = data.costs.since || new Date().toISOString().slice(0, 7);
+    if (!data.costs.perStay?.length) addRow('per-stay'); if (!data.costs.monthly?.length) addRow('monthly');
+  }
+  $('costs-info').textContent = `Hoje: ${fmt(data.perStayCost)} por estadia e ${fmt(data.monthlyCost)} por mês.`;
+
+  $('expenses').innerHTML = data.expenses.map(e => `<tr><td>${br(e.date)}</td><td>${esc(e.desc)}</td><td class="n">${fmt(e.amount)}</td>
+    <td><button class="link" onclick="removeExp('${e.id}')">✕</button></td></tr>`).join('') || `<tr><td class="muted">Nenhuma despesa avulsa em ${data.year}.</td></tr>`;
+}
+function addRow(where, c = {}) {
+  const div = document.createElement('div'); div.className = 'cost-row';
+  div.innerHTML = `<input placeholder="Item" value="${esc(c.name || '')}"><input type="number" step="0.01" min="0" placeholder="R$" value="${c.amount ?? ''}"><button class="link" type="button">✕</button>`;
+  div.querySelector('button').onclick = () => div.remove();
+  $(where).appendChild(div);
+}
+const readRows = where => [...$(where).querySelectorAll('.cost-row')].map(r => ({ name: r.children[0].value.trim(), amount: r.children[1].value })).filter(c => c.name && c.amount !== '');
+$('save-costs').onclick = async () => { await api('costs', { method:'PUT', body: JSON.stringify({ perStay: readRows('per-stay'), monthly: readRows('monthly'), since: $('since').value }) }); document.activeElement.blur(); await load(); alert('Custos salvos'); };
+async function removeStay(key) { if (!confirm('Remover esta estadia dos relatórios?')) return; await api('stays/' + encodeURIComponent(key), { method:'DELETE' }); load(); }
+async function removeExp(id) { await api('expenses/' + id, { method:'DELETE' }); load(); }
+$('stay-form').onsubmit = async e => { e.preventDefault(); await api('stays', { method:'POST', body: JSON.stringify({ checkIn:$('m-in').value, checkOut:$('m-out').value, channel:$('m-ch').value, guest:$('m-guest').value, revenue:$('m-rev').value }) }); e.target.reset(); load(); };
+$('exp-form').onsubmit = async e => { e.preventDefault(); await api('expenses', { method:'POST', body: JSON.stringify({ date:$('e-date').value, desc:$('e-desc').value, amount:$('e-amount').value }) }); e.target.reset(); load(); };
+async function load() { data = await api('finance?year=' + $('year').value); render(); }
+load();
+</script>
+</body>
+</html>
